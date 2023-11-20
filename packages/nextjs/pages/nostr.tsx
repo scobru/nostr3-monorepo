@@ -9,6 +9,10 @@ import { finishEvent, getPublicKey, relayInit } from "nostr-tools";
 import { toBytes } from "viem";
 import { toHex } from "viem";
 import { keccak256 } from "viem";
+import viem from "viem";
+import { toRlp } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { vechain } from "viem/chains";
 import { usePublicClient, useWalletClient } from "wagmi";
 import "websocket-polyfill";
 
@@ -248,22 +252,22 @@ const Nostr: NextPage = () => {
   };
 
   const generateKeyPairFromSeed = async () => {
-    console.log(signer, provider);
-
     const baseMessage = "nostr3";
+
     // Get 65 byte signature from user using personal_sign
     const formattedMessage = toHex(toBytes(baseMessage));
 
     console.log(formattedMessage);
+
     const signature = await signer?.signMessage({ message: formattedMessage });
     console.log("Sig:", signature);
-
     const hashed = keccak256(signature as any);
     const seed = toBytes(hashed);
 
     const kp = MecenateHelper.crypto.asymmetric.generateKeyPairFromSeed(seed);
-
     console.log(kp);
+
+    console.log(privateKeyToAccount(toRlp(kp.secretKey)));
 
     return kp;
   };
@@ -273,7 +277,7 @@ const Nostr: NextPage = () => {
   };
 
   return (
-    <div>
+    <div className="flex items-center flex-col flex-grow pt-10">
       {signer?.account ? (
         <div className="font-black m-5">
           <h1 className="text-8xl mb-4">nosrt3</h1>
