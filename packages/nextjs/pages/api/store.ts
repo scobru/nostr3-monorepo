@@ -1,6 +1,5 @@
 import { Mogu } from "@scobru/mogu";
 import { EncryptedNode } from "@scobru/mogu/dist/db/db";
-import axios from "axios";
 import fse from "fs-extra";
 
 interface IResponse {

@@ -20,6 +20,7 @@
     "@scobru/crypto-ipfs": "^1.1.11",
     "@scobru/mogu": "^1.2.6",
     "@scobru/nostr3": "^1.0.4",
+    "@types/fs-extra": "^11.0.4",
     "@uniswap/sdk-core": "^4.0.1",
     "@uniswap/v2-sdk": "^3.0.1",
     "blo": "^1.0.1",
@@ -56,6 +57,6 @@
     "tailwindcss": "^3.3.3",
     "type-fest": "^4.6.0",
     "typescript": "^5.1.6",
-    "vercel": "^28.15.1"
+    "vercel": "^32.5.5"
   }
 }
