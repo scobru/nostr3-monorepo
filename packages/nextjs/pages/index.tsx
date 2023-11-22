@@ -444,17 +444,17 @@ const Home: NextPage = () => {
 
   return (
     <div className="flex items-center flex-col flex-grow pt-10 ">
-      <div className="w-3/4 mx-auto">
+      <div className="w-2/4 mx-auto">
         {signer?.account ? (
           <div className="m-5 break-all">
             <h1 className="text-8xl mb-4">#nosrt3</h1>
             <h1 className="text-xl mb-4">generate programmatically key for nostr protocol with your web3 address</h1>
-            <nav className="flex  p-4">
-              <label className="btn btn-ghost  mr-2" onClick={async () => await handleGenerateKeys()}>
+            <nav className="flex flex-wrap p-4">
+              <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={async () => await handleGenerateKeys()}>
                 Generate Keys
               </label>
               <button
-                className="btn btn-ghost  mr-2"
+                className="btn btn-ghost mr-2 md:mr-4 lg:mr-6"
                 onClick={() => {
                   const relayModal = document?.getElementById("relay_modal") as HTMLDialogElement;
                   relayModal?.showModal();
@@ -501,7 +501,7 @@ const Home: NextPage = () => {
                 </div>
               </dialog>{" "}
               <button
-                className="btn btn-ghost  mr-2"
+                className="btn btn-ghost mr-2 md:mr-4 lg:mr-6"
                 onClick={() => {
                   const profile_modal = document.getElementById("Update_profile_modal") as HTMLDialogElement;
                   if (profile_modal) profile_modal.showModal();
@@ -613,7 +613,7 @@ const Home: NextPage = () => {
                 </div>
               </dialog>
               <button
-                className="btn btn-ghost  mr-2"
+                className="btn btn-ghost mr-2 md:mr-4 lg:mr-6"
                 onClick={() => {
                   const post_modal = document.getElementById("post_modal") as HTMLDialogElement;
                   if (post_modal) {
@@ -672,7 +672,7 @@ const Home: NextPage = () => {
                 </div>
               </dialog>
               <button
-                className="btn btn-ghost  "
+                className="btn btn-ghost mr-2 md:mr-4 lg:mr-6"
                 onClick={() => {
                   const search_evm_modal = document.getElementById("search_evm_modal") as HTMLDialogElement;
                   if (search_evm_modal) {
