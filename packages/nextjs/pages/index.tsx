@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import MecenateHelper from "@scobru/crypto-ipfs";
-import { Nostr3 } from "@scobru/nostr3/dist/Nostr3";
+import { Nostr3 } from "@scobru/nostr3/dist/nostr3";
 import type { NextPage } from "next";
 import { finishEvent, getPublicKey, relayInit } from "nostr-tools";
 import { toBytes } from "viem";
 import { toHex } from "viem";
 import { keccak256 } from "viem";
 import { useWalletClient } from "wagmi";
-import "websocket-polyfill";
+import { Address } from "~~/components/scaffold-eth";
+import { BlockieAvatar } from "~~/components/scaffold-eth";
 import { notification } from "~~/utils/scaffold-eth";
 
 const Home: NextPage = () => {
@@ -17,11 +18,11 @@ const Home: NextPage = () => {
   const [publicKey, setPublicKey] = useState("");
   const [nostrPublicKey, setNostrPublicKey] = useState("");
   const [event, setEvent] = useState<any>(null);
-  const [relayURL, setRelayURL] = useState("wss://nostr-relay.scobrudot.dev/"); // Replace with a real relay URL
+  const [relayURL, setRelayURL] = useState("ws://localhost:4736"); // Replace with a real relay URL
   const [relay, setRelay] = useState<any>(null);
-  const [isRelayModalOpen, setIsRelayModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("pastEvents");
   const [showKeys, setShowKeys] = useState(false);
+  const [relayList, setRelayList] = useState([]);
 
   const [metadata, setMetadata] = useState<any>({
     name: "",
@@ -49,8 +50,7 @@ const Home: NextPage = () => {
       lud06: "",
     },
   ]);
-  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
-  const [isUpdateProfileModalOpen, setIsUpdateProfileModalOpen] = useState(false);
+
   const [profileDetails, setProfileDetails] = useState({
     name: "",
     display_name: "",
@@ -68,9 +68,6 @@ const Home: NextPage = () => {
   const [tags, setTags] = useState<string[]>([]);
   const [mentionsPublicKeys, setMentionsPublicKeys] = useState<string[]>([]);
   const [mentionsEvents, setMentionsEvents] = useState<string[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSearchEvmModalOpen, setIsSearchEvmModalOpen] = useState(false);
-
   const [newMessage, setNewMessage] = useState("");
   const [pastEvents, setPastEvents] = useState<any[]>([]);
   const [accountEvmToSearch, setAccountEvmToSearch] = useState("");
@@ -102,21 +99,28 @@ const Home: NextPage = () => {
             {event &&
               event.all &&
               event.all.map((e: any, index: number) => (
-                <div key={index} className="text-black break-all mb-4 bg-primary shadow-md rounded p-4">
-                  {profiles && profiles[index] && profiles[index].display_name ? (
-                    <div className="bg-white shadow-md rounded p-4 flex flex-col items-center text-center">
-                      <img
-                        className="rounded-full h-24 w-24 object-cover mb-4"
-                        src={profiles[index].picture}
-                        alt="Profile"
-                        // Fallback image
-                      />
-                      <p className="font-bold text-lg mb-2">{profiles[index].display_name}</p>
-                      <p className="font-base text-lg">{e.content}</p>
-                    </div>
-                  ) : (
-                    <p>No profile picture available</p>
-                  )}
+                <div key={index} className="border-secondary border-2 break-all mb-4 rounded-lg p-5">
+                  <div className="w-3/4 mx-auto">
+                    {profiles[index] ? (
+                      <div className="p-4 flex flex-col items-center text-center">
+                        <img
+                          className="rounded-full h-24 w-24 object-cover mb-4"
+                          src={profiles[index].picture}
+                          alt="Profile"
+                          onError={e => (e.currentTarget.src = "logo.svg")}
+                        />
+                        <p className="font-bold text-lg mb-2">{profiles[index].display_name}</p>
+                      </div>
+                    ) : (
+                      <div className="p-4 flex flex-col items-center text-center">
+                        {" "}
+                        <BlockieAvatar address={e.pubkey} size={100} />
+                      </div>
+                    )}
+                    <p className="font-medium text-base">{e.content}</p>
+                    <p className="font-bold text-sm">{e.pubkey}</p>
+                    <p className="font-semibold text-xs">{new Date(e.created_at).toLocaleString()}</p>
+                  </div>
                 </div>
               ))}
           </div>
@@ -125,232 +129,6 @@ const Home: NextPage = () => {
         return null;
     }
   };
-
-  const SearchEvmModal = () => (
-    <div className={`modal ${isSearchEvmModalOpen ? "modal-open" : ""}`}>
-      <div className="modal-box">
-        <h1 className="text-3xl font-thin mt-10">SEARCH ADDRESS</h1>
-        <div className="flex flex-col mt-5">
-          <input
-            placeholder="EVM Address joined to nostr3"
-            type="text"
-            className="input input-primary my-5"
-            onChange={e => setAccountEvmToSearch(e.target.value)}
-          />
-
-          <button className="  btn btn-primary my-5" disabled={!connected} onClick={handleSearchFromEVM}>
-            Search Nostr PubKey
-          </button>
-          <br />
-          {searchPublicKey.pubkey && (
-            <div>
-              <div className="text-sm ">{searchPublicKey.pubkey}</div>
-              <div className=" text-2xl font-semibold">{JSON.parse(searchPublicKey.profile).display_name}</div>
-              <div className=" ">{JSON.parse(searchPublicKey.profile).about}</div>
-            </div>
-          )}
-        </div>
-        <button className="btn" onClick={() => setIsSearchEvmModalOpen(false)}>
-          Close
-        </button>
-      </div>
-    </div>
-  );
-
-  const RelayModal = () => (
-    <div className={`modal ${isRelayModalOpen ? "modal-open" : ""}`}>
-      <div className="modal-box">
-        <h1 className="text-3xl font-thin mb-4">RELAY</h1>
-        <label className="block mb-4">
-          <input
-            className="input input-bordered w-full mb-2 my-2"
-            type="text"
-            value={relayURL}
-            onChange={e => setRelayURL(e.target.value)}
-            placeholder="Enter Relay URL"
-          />
-        </label>
-        <button className=" w-full  btn btn-primary mb-5" onClick={handleConnectRelay}>
-          Connect to Relay
-        </button>
-        <button className="btn" onClick={() => setIsRelayModalOpen(false)}>
-          Close
-        </button>
-      </div>
-    </div>
-  );
-
-  const PostModal = () => (
-    <div className={`modal ${isPostModalOpen ? "modal-open" : ""}`}>
-      <div className="modal-box">
-        <h1 className="text-3xl font-thin mt-10">POST</h1>
-        <textarea
-          className="textarea textarea-primary w-full mb-4 mt-5"
-          value={newMessage}
-          onChange={e => setNewMessage(e.target.value)}
-          placeholder="Enter your message"
-        />
-        <input
-          className="input input-bordered w-full mb-2 mb-2"
-          type="text"
-          placeholder="Enter tags (comma-separated)"
-          onChange={e => handleAddTag(e.target.value)}
-        />
-        <input
-          className="input input-bordered w-full mb-2 mb-2"
-          type="text"
-          placeholder="Enter Event  (comma-separated)"
-          onChange={e => handleAddMentionEvent(e.target.value)}
-        />
-        <input
-          className="input input-bordered w-full mb-2 mb-2"
-          type="text"
-          placeholder="Enter Public Keys (comma-separated)"
-          onChange={e => handleAddMentionPublicKey(e.target.value)}
-        />
-        <button
-          className="  btn btn-primary my-5 w-full"
-          onClick={handleSendMessage}
-          disabled={!connected || !nostrPrivateKey}
-        >
-          Send Message
-        </button>
-        <button className="btn" onClick={() => setIsPostModalOpen(false)}>
-          Close
-        </button>
-      </div>
-    </div>
-  );
-
-  const UpdateProfileModal = () => (
-    <div className={`modal ${isUpdateProfileModalOpen ? "modal-open" : ""}`}>
-      <div className="modal-box">
-        <h1 className="text-3xl font-thin mt-10">UPDATE PROFILE</h1>
-        <div className="min-w-full">
-          <input
-            className="input input-bordered w-full mb-2"
-            type="text"
-            value={metadata.name}
-            onChange={e => updateMetadata("name", e.target.value)}
-            placeholder="UserName"
-          />
-          <input
-            className="input input-bordered w-full mb-2"
-            type="text"
-            value={metadata.display_name}
-            onChange={e => updateMetadata("display_name", e.target.value)}
-            placeholder="Display Name"
-          />
-          <input
-            className="input input-bordered w-full mb-2"
-            type="text"
-            value={metadata.website}
-            onChange={e => updateMetadata("website", e.target.value)}
-            placeholder="WebSite"
-          />
-          <input
-            className="input input-bordered w-full mb-2"
-            type="text"
-            value={metadata.about}
-            onChange={e => updateMetadata("about", e.target.value)}
-            placeholder="About Me"
-          />
-          <input
-            className="input input-bordered w-full mb-2"
-            type="text"
-            value={metadata.picture}
-            onChange={e => updateMetadata("picture", e.target.value)}
-            placeholder="Picture Link"
-          />
-          {
-            <input
-              className="input input-bordered w-full mb-2"
-              type="text"
-              value={metadata.image}
-              onChange={e => updateMetadata("image", e.target.value)}
-              placeholder="Image Link"
-            />
-          }
-          <input
-            className="input input-bordered w-full mb-2"
-            type="text"
-            value={metadata.banner}
-            onChange={e => updateMetadata("banner", e.target.value)}
-            placeholder="Banner Link"
-          />
-          <input
-            className="input input-bordered w-full mb-2"
-            type="text"
-            value={metadata.nip05}
-            onChange={e => updateMetadata("nip05", e.target.value)}
-            placeholder="NIP05"
-          />
-          <input
-            className="input input-bordered w-full mb-2"
-            type="text"
-            value={metadata.lud06}
-            onChange={e => updateMetadata("lud06", e.target.value)}
-            placeholder="LUD06"
-          />
-          <input
-            className="input input-bordered w-full mb-2"
-            type="text"
-            value={metadata.lid16}
-            onChange={e => updateMetadata("lid16", e.target.value)}
-            placeholder="LUD16"
-          />
-          <input
-            className="input input-bordered w-full mb-2"
-            type="text"
-            value={metadata.mastodonUrl}
-            onChange={e => updateMetadata("mastodonUrl", e.target.value)}
-            placeholder="Mastodon URL"
-          />
-          <button className="w-full  btn btn-primary my-5" onClick={handleChangeMetadata}>
-            Update
-          </button>
-        </div>
-        <button className="btn" onClick={() => setIsUpdateProfileModalOpen(false)}>
-          Close
-        </button>
-      </div>
-    </div>
-  );
-
-  const EventsModal = () => (
-    <div className={`modal ${isModalOpen ? "modal-open" : ""}`}>
-      <div className="modal-box">
-        <h3 className="font-bold text-lg">Fetched Events</h3>
-        {event &&
-          event.all &&
-          event.all.map((e: any, index: number) => (
-            <div key={index} className="text-black break-all mb-4 bg-primary shadow-md rounded p-4">
-              {profiles && profiles[index] && profiles[index].display_name ? (
-                <div className="bg-white shadow-md rounded p-4 flex flex-col items-center text-center">
-                  <img
-                    className="rounded-full h-24 w-24 object-cover mb-4"
-                    src={profiles[index].picture}
-                    alt="Profile"
-                    // Fallback image
-                  />
-                  <p className="font-bold text-lg mb-2">{profiles[index].display_name}</p>
-                  {/* <p className="text-md">{e.pubkey}</p>
-                  <p className="text-md">{e.id}</p> */}
-                  <p className="font-base text-lg">{e.content}</p>
-                </div>
-              ) : (
-                <p>No profile picture available</p>
-              )}
-            </div>
-          ))}
-      </div>
-      <div className="modal-action">
-        <button className="btn btn-primary" onClick={() => setIsModalOpen(false)}>
-          Close
-        </button>
-      </div>
-    </div>
-  );
 
   const loadProfile = async (loadedPubKey: any) => {
     try {
@@ -487,6 +265,21 @@ const Home: NextPage = () => {
     }
   }, [event]);
 
+  useEffect(() => {
+    const fetchRelays = async () => {
+      try {
+        const response = await fetch("https://api.nostr.watch/v1/online");
+        console.log(response);
+        const data = await response.json();
+        setRelayList(data); // Assuming the API returns an array of relays
+      } catch (error) {
+        console.error("Failed to fetch relay list:", error);
+      }
+    };
+
+    fetchRelays();
+  }, []);
+
   const handleChangeMetadata = async () => {
     const data = {
       name: metadata.name,
@@ -597,7 +390,6 @@ const Home: NextPage = () => {
   };
 
   const handleConnectRelay = async () => {
-    setIsRelayModalOpen(false);
     const relay = relayInit(relayURL);
     relay.on("connect", async () => {
       console.log(`Connected to ${relay.url}`);
@@ -622,7 +414,6 @@ const Home: NextPage = () => {
 
     await relay.connect();
     setRelay(relay);
-
     setConnected(true);
   };
 
@@ -656,38 +447,287 @@ const Home: NextPage = () => {
       <div className="w-3/4 mx-auto">
         {signer?.account ? (
           <div className="m-5 break-all">
-            <h1 className="text-8xl mb-4">nosrt3</h1>
+            <h1 className="text-8xl mb-4">#nosrt3</h1>
             <h1 className="text-xl mb-4">generate programmatically key for nostr protocol with your web3 address</h1>
             <nav className="flex  p-4">
-              <label className="btn btn-ghost  mr-4" onClick={async () => await handleGenerateKeys()}>
+              <label className="btn btn-ghost  mr-2" onClick={async () => await handleGenerateKeys()}>
                 Generate Keys
               </label>
-              <label className="btn btn-ghost " onClick={() => setIsRelayModalOpen(true)}>
+              <button
+                className="btn btn-ghost  mr-2"
+                onClick={() => {
+                  const relayModal = document?.getElementById("relay_modal") as HTMLDialogElement;
+                  relayModal?.showModal();
+                  handleConnectRelay();
+                }}
+              >
                 Relay
-              </label>
-              <label className="btn btn-ghost mr-4" onClick={() => setIsUpdateProfileModalOpen(true)}>
-                Update Profile
-              </label>
-              <label className="btn btn-ghost " onClick={() => setIsPostModalOpen(true)}>
+              </button>
+              <dialog id="relay_modal" className="modal">
+                <div className="modal-box">
+                  <h1 className="text-3xl font-thin mb-4">RELAY</h1>
+                  <label className="block mb-4">
+                    <select
+                      className="select select-bordered w-full mb-2 my-2"
+                      value={relayURL}
+                      onChange={e => setRelayURL(String(e.target.value))}
+                    >
+                      {relayList.map(relay => (
+                        <option key={relay} value={relay}>
+                          {relay}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    className=" w-full  btn btn-primary mb-5"
+                    onClick={() => {
+                      const relay_modal = document.getElementById("relay_modal") as HTMLDialogElement;
+                      if (relay_modal) relay_modal;
+
+                      handleConnectRelay();
+                    }}
+                  >
+                    Connect to Relay
+                  </button>
+                  <div className="modal-action">
+                    <div className="modal-action">
+                      <form method="dialog">
+                        {/* if there is a button in form, it will close the modal */}
+                        <button className="btn">Close</button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </dialog>{" "}
+              <button
+                className="btn btn-ghost  mr-2"
+                onClick={() => {
+                  const profile_modal = document.getElementById("Update_profile_modal") as HTMLDialogElement;
+                  if (profile_modal) profile_modal.showModal();
+                }}
+              >
+                update profile
+              </button>
+              <dialog id="Update_profile_modal" className="modal">
+                <div className="modal-box">
+                  <h1 className="text-3xl font-thin mt-10">UPDATE PROFILE</h1>
+                  <div className="min-w-full">
+                    <input
+                      className="input input-bordered w-full mb-2"
+                      type="text"
+                      value={metadata.name}
+                      onChange={e => updateMetadata("name", e.target.value)}
+                      placeholder="UserName"
+                    />
+                    <input
+                      className="input input-bordered w-full mb-2"
+                      type="text"
+                      value={metadata.display_name}
+                      onChange={e => updateMetadata("display_name", e.target.value)}
+                      placeholder="Display Name"
+                    />
+                    <input
+                      className="input input-bordered w-full mb-2"
+                      type="text"
+                      value={metadata.website}
+                      onChange={e => updateMetadata("website", e.target.value)}
+                      placeholder="WebSite"
+                    />
+                    <input
+                      className="input input-bordered w-full mb-2"
+                      type="text"
+                      value={metadata.about}
+                      onChange={e => updateMetadata("about", e.target.value)}
+                      placeholder="About Me"
+                    />
+                    <input
+                      className="input input-bordered w-full mb-2"
+                      type="text"
+                      value={metadata.picture}
+                      onChange={e => updateMetadata("picture", e.target.value)}
+                      placeholder="Picture Link"
+                    />
+                    {
+                      <input
+                        className="input input-bordered w-full mb-2"
+                        type="text"
+                        value={metadata.image}
+                        onChange={e => updateMetadata("image", e.target.value)}
+                        placeholder="Image Link"
+                      />
+                    }
+                    <input
+                      className="input input-bordered w-full mb-2"
+                      type="text"
+                      value={metadata.banner}
+                      onChange={e => updateMetadata("banner", e.target.value)}
+                      placeholder="Banner Link"
+                    />
+                    <input
+                      className="input input-bordered w-full mb-2"
+                      type="text"
+                      value={metadata.nip05}
+                      onChange={e => updateMetadata("nip05", e.target.value)}
+                      placeholder="NIP05"
+                    />
+                    <input
+                      className="input input-bordered w-full mb-2"
+                      type="text"
+                      value={metadata.lud06}
+                      onChange={e => updateMetadata("lud06", e.target.value)}
+                      placeholder="LUD06"
+                    />
+                    <input
+                      className="input input-bordered w-full mb-2"
+                      type="text"
+                      value={metadata.lid16}
+                      onChange={e => updateMetadata("lid16", e.target.value)}
+                      placeholder="LUD16"
+                    />
+                    <input
+                      className="input input-bordered w-full mb-2"
+                      type="text"
+                      value={metadata.mastodonUrl}
+                      onChange={e => updateMetadata("mastodonUrl", e.target.value)}
+                      placeholder="Mastodon URL"
+                    />
+                    <button
+                      className="w-full  btn btn-primary my-5"
+                      onClick={() => {
+                        const close_modal = document.getElementById("Update_profile_modal") as HTMLDialogElement;
+                        if (close_modal) close_modal.close();
+
+                        handleChangeMetadata();
+                      }}
+                    >
+                      Update
+                    </button>
+                  </div>
+                  <div className="modal-action">
+                    <form method="dialog">
+                      {/* if there is a button in form, it will close the modal */}
+                      <button className="btn">Close</button>
+                    </form>
+                  </div>
+                </div>
+              </dialog>
+              <button
+                className="btn btn-ghost  mr-2"
+                onClick={() => {
+                  const post_modal = document.getElementById("post_modal") as HTMLDialogElement;
+                  if (post_modal) {
+                    post_modal.showModal();
+                  }
+                }}
+              >
                 Post
-              </label>
-              <label className="btn btn-ghost " onClick={() => setIsSearchEvmModalOpen(true)}>
-                Search EVM Modal
-              </label>
+              </button>
+              <dialog id="post_modal" className="modal">
+                <div className="modal-box">
+                  <h1 className="text-3xl font-thin mt-10">POST</h1>
+                  <textarea
+                    className="textarea textarea-primary w-full mb-4 mt-5"
+                    value={newMessage}
+                    onChange={e => setNewMessage(e.target.value)}
+                    placeholder="Enter your message"
+                  />
+                  <input
+                    className="input input-bordered w-full mb-2 mb-2"
+                    type="text"
+                    placeholder="Enter tags (comma-separated)"
+                    onChange={e => handleAddTag(e.target.value)}
+                  />
+                  <input
+                    className="input input-bordered w-full mb-2 mb-2"
+                    type="text"
+                    placeholder="Enter Event  (comma-separated)"
+                    onChange={e => handleAddMentionEvent(e.target.value)}
+                  />
+                  <input
+                    className="input input-bordered w-full mb-2 mb-2"
+                    type="text"
+                    placeholder="Enter Public Keys (comma-separated)"
+                    onChange={e => handleAddMentionPublicKey(e.target.value)}
+                  />
+                  <button
+                    className="  btn btn-primary my-5 w-full"
+                    onClick={() => {
+                      const postModal = document.getElementById("post_modal") as HTMLDialogElement;
+                      if (postModal) {
+                        postModal.close();
+                      }
+                      handleSendMessage();
+                    }}
+                    disabled={!connected || !nostrPrivateKey}
+                  >
+                    Send Message
+                  </button>
+                  <div className="modal-action">
+                    <form method="dialog">
+                      {/* if there is a button in form, it will close the modal */}
+                      <button className="btn">Close</button>
+                    </form>
+                  </div>
+                </div>
+              </dialog>
+              <button
+                className="btn btn-ghost  "
+                onClick={() => {
+                  const search_evm_modal = document.getElementById("search_evm_modal") as HTMLDialogElement;
+                  if (search_evm_modal) {
+                    search_evm_modal.showModal();
+                  }
+                }}
+              >
+                SEARCH
+              </button>
+              <dialog id="search_evm_modal" className="modal">
+                <div className="modal-box">
+                  <h1 className="text-3xl font-thin mt-10">SEARCH ADDRESS</h1>
+                  <div className="flex flex-col mt-5">
+                    <input
+                      placeholder="EVM Address joined to nostr3"
+                      type="text"
+                      className="input input-primary my-5"
+                      onChange={e => setAccountEvmToSearch(e.target.value)}
+                    />
+
+                    <button
+                      className="  btn btn-primary my-5"
+                      disabled={!connected}
+                      onClick={() => {
+                        handleSearchFromEVM();
+                      }}
+                    >
+                      Search Nostr PubKey
+                    </button>
+                    <br />
+                    {searchPublicKey.pubkey && (
+                      <div>
+                        <div className="text-sm ">{searchPublicKey.pubkey}</div>
+                        <div className=" text-2xl font-semibold">
+                          {JSON.parse(searchPublicKey.profile).display_name}
+                        </div>
+                        <div className=" ">{JSON.parse(searchPublicKey.profile).about}</div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="modal-action">
+                    <form method="dialog">
+                      {/* if there is a button in form, it will close the modal */}
+                      <button className="btn">Close</button>
+                    </form>
+                  </div>
+                </div>
+              </dialog>
             </nav>
             {connected ? (
               <p className="mb-4 text-bold text-2xl text-success">📡 Connected</p>
             ) : (
               <p className="mb-4 text-bold text-2xl text-success">Not Connected</p>
             )}
-
             <ProfileDetailsBox />
-            <UpdateProfileModal />
-            <PostModal />
-            <RelayModal />
-            <SearchEvmModal />
-            <EventsModal />
-
             {event && event.created && (
               <div className="bg-success p-5 text-black">
                 <h2 className="text-2xl mb-2">Created Event</h2>
@@ -698,10 +738,24 @@ const Home: NextPage = () => {
             )}
             <div>
               <div role="tablist" className="tabs tabs-boxed mb-5">
-                <a role="tab" className="tab" onClick={() => setActiveTab("pastEvents")}>
+                <a
+                  role="tab"
+                  className="tab"
+                  onClick={() => {
+                    setActiveTab("pastEvents");
+                    handleFetchMyEvents();
+                  }}
+                >
                   Your Post
                 </a>
-                <a role="tab" className="tab " onClick={() => setActiveTab("fetchEvents")}>
+                <a
+                  role="tab"
+                  className="tab "
+                  onClick={() => {
+                    setActiveTab("fetchEvents");
+                    handleFetchEvents();
+                  }}
+                >
                   Feed
                 </a>
                 <input
@@ -714,8 +768,11 @@ const Home: NextPage = () => {
                   Search
                 </button>
               </div>
-
               <TabContent />
+              <h3 className=" gap-2 flex flex-row text-lg mb-4">
+                <span> Donate to support the project to</span>
+                <Address address={"0xb542E27732a390f509fD1FF6844a8386fe320f7f"} /> 🙏
+              </h3>
             </div>
           </div>
         ) : (
