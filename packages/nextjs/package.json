@@ -41,6 +41,7 @@
     "viem": "^1.16.6",
     "wagmi": "1.4.4",
     "websocket-polyfill": "^0.0.3",
+    "ws": "^8.14.2",
     "zustand": "^4.1.2"
   },
   "devDependencies": {
@@ -48,6 +49,7 @@
     "@types/node": "^17.0.35",
     "@types/react": "^18.0.9",
     "@types/react-copy-to-clipboard": "^5.0.4",
+    "@types/ws": "^8",
     "@typescript-eslint/eslint-plugin": "^5.39.0",
     "autoprefixer": "^10.4.12",
     "eslint": "^8.15.0",
