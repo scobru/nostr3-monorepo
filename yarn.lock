@@ -1895,9 +1895,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@scobru/nostr3@npm:^1.0.4":
-  version: 1.0.4
-  resolution: "@scobru/nostr3@npm:1.0.4"
+"@scobru/nostr3@npm:^1.0.5":
+  version: 1.0.5
+  resolution: "@scobru/nostr3@npm:1.0.5"
   dependencies:
     "@scobru/crypto-ipfs": ^1.1.8
     "@scobru/mogu": ^1.2.5
@@ -1912,7 +1912,7 @@ __metadata:
     tsc: ^2.0.4
     typescript: ^5.2.2
     ws: ^8.14.2
-  checksum: 2542133c14b0860643e5eb2cbec8c14509d5529dbf0a2aba9488a267035ddba4722862f28cd6f54cd249da67ea786ffba5291ae300c655403c06a25a7b1535c6
+  checksum: c0d73f7e1e547672649d50a56046b4b4469f9fc3532dbc1d1d49941076c7c1376ebf2cece65e078eeec22084ef2107f7fae978a48b292ac63a244aa83ea45473
   languageName: node
   linkType: hard
 
@@ -2054,7 +2054,7 @@ __metadata:
     "@rainbow-me/rainbowkit": 1.1.2
     "@scobru/crypto-ipfs": ^1.1.11
     "@scobru/mogu": ^1.2.6
-    "@scobru/nostr3": ^1.0.4
+    "@scobru/nostr3": ^1.0.5
     "@trivago/prettier-plugin-sort-imports": ^4.1.1
     "@types/fs-extra": ^11.0.4
     "@types/node": ^17.0.35
@@ -14603,6 +14603,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "se-2@workspace:."
   dependencies:
+    "@scobru/nostr3": ^1.0.5
     husky: ^8.0.1
     lint-staged: ^13.0.3
   languageName: unknown

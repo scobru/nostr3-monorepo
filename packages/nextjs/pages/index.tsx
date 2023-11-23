@@ -18,7 +18,7 @@ const Home: NextPage = () => {
   const [publicKey, setPublicKey] = useState("");
   const [nostrPublicKey, setNostrPublicKey] = useState("");
   const [event, setEvent] = useState<any>(null);
-  const [relayURL, setRelayURL] = useState("ws://localhost:4736"); // Replace with a real relay URL
+  const [relayURL, setRelayURL] = useState("wss://relay.damus.io"); // Replace with a real relay URL
   const [relay, setRelay] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("pastEvents");
   const [showKeys, setShowKeys] = useState(false);
@@ -71,6 +71,7 @@ const Home: NextPage = () => {
   const [newMessage, setNewMessage] = useState("");
   const [pastEvents, setPastEvents] = useState<any[]>([]);
   const [accountEvmToSearch, setAccountEvmToSearch] = useState("");
+  const [nProfile, setNProfile] = useState("");
   const [searchPublicKey, setSearchPublicKey] = useState({
     pubkey: "",
     profile: "",
@@ -325,19 +326,42 @@ const Home: NextPage = () => {
               alt="Profile"
               //onError={e => (e.currentTarget.src = "fallback-image-url.jpg")} // Fallback image
             />
-            <h3 className="font-bold text-lg mb-2">{profileDetails.display_name}</h3>
+            <h3 className="font-bold text-lg mb-4">{profileDetails.display_name}</h3>
             <p className="text-md">{profileDetails.about}</p>
           </div>
         )}
-        <button className="btn" onClick={() => setShowKeys(!showKeys)}>
+        <button className="btn text-left mb-5" onClick={() => setShowKeys(!showKeys)}>
           {showKeys ? "Hide Keys" : "Show Keys"}
         </button>
         {showKeys && (
-          <div className="w-fit break-all">
-            {publicKey && <p className="mb-4 ">Public Key: {publicKey}</p>}
-            {privateKey && <p className="mb-4">Private Key: {privateKey}</p>}
-            {nostrPublicKey && <p className="mb-4">NIP19 Public Key: {nostrPublicKey}</p>}
-            {nostrPrivateKey && <p className="mb-4">NIP19 Private Key: {nostrPrivateKey}</p>}
+          <div className="w-fit bg-primary text-primary-content rounded-lg p-5 shadow-mg shadow-base-accent">
+            <ul className="space-y-2">
+              {publicKey && (
+                <li className="font-bold border-b border-primary-content p-2">
+                  Public Key: <span className="font-normal">{publicKey}</span>
+                </li>
+              )}
+              {privateKey && (
+                <li className="font-bold border-b border-primary-content p-2">
+                  Private Key: <span className="font-normal">{privateKey}</span>
+                </li>
+              )}
+              {nostrPublicKey && (
+                <li className="font-bold border-b border-primary-content p-2">
+                  NIP19 Public Key: <span className="font-normal">{nostrPublicKey}</span>
+                </li>
+              )}
+              {nostrPrivateKey && (
+                <li className="font-bold border-b border-primary-content p-2">
+                  NIP19 Private Key: <span className="font-normal">{nostrPrivateKey}</span>
+                </li>
+              )}
+              {nProfile && (
+                <li className="font-bold p-2">
+                  NIP19 Nostr Profile: <span className="font-normal">{nProfile}</span>
+                </li>
+              )}
+            </ul>
           </div>
         )}
       </div>
@@ -354,6 +378,7 @@ const Home: NextPage = () => {
     setPrivateKey(nostrKeys.sec);
     setPublicKey(getPublicKey(nostrKeys.sec));
     setNostrPublicKey(nostrKeys.npub);
+    setNProfile(nostrKeys.nprofile);
     console.log("pubkey:", nostrKeys.pub);
     try {
       const profileData = await loadProfile(nostrKeys.pub);
@@ -447,8 +472,8 @@ const Home: NextPage = () => {
       <div className="w-2/4 mx-auto">
         {signer?.account ? (
           <div className="m-5 break-all">
-            <h1 className="text-8xl mb-4">#nosrt3</h1>
-            <h1 className="text-xl mb-4">generate programmatically key for nostr protocol with your web3 address</h1>
+            <h1 className="text-8xl mb-2 font-semibold">NOSTR3</h1>
+            <h1 className="text-xl mb-5">generate programmatically key for nostr protocol with your web3 address</h1>
             <nav className="flex flex-wrap p-4">
               <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={async () => await handleGenerateKeys()}>
                 Generate Keys
@@ -489,6 +514,25 @@ const Home: NextPage = () => {
                     }}
                   >
                     Connect to Relay
+                  </button>
+                  <button
+                    className=" w-full  btn btn-primary mb-5"
+                    onClick={() => {
+                      const relay_modal = document.getElementById("relay_modal") as HTMLDialogElement;
+                      if (relay_modal) relay_modal;
+                      setRelayURL("ws://51.255.48.202:4736");
+                      handleConnectRelay();
+                    }}
+                  >
+                    Use Nostr3 Relay
+                  </button>
+                  <button
+                    className=" w-full  btn btn-primary mb-5"
+                    onClick={() => {
+                      relay.close();
+                    }}
+                  >
+                    Disconnect
                   </button>
                   <div className="modal-action">
                     <div className="modal-action">
@@ -729,11 +773,11 @@ const Home: NextPage = () => {
             )}
             <ProfileDetailsBox />
             {event && event.created && (
-              <div className="bg-success p-5 text-black">
-                <h2 className="text-2xl mb-2">Created Event</h2>
-                <p className="mb-2">ID: {event.created.id}</p>
-                <p className="mb-2">From: {event.created.pubkey}</p>
-                <p className="mb-2">{event.created.content}</p>
+              <div className="bg-success p-5 text-black rounded-md mb-4">
+                <h2 className="text-2xl mb-2">🎉 Posted!</h2>
+                {/* <p className="mb-2">ID: {event.created.id}</p>
+                <p className="mb-2">From: {event.created.pubkey}</p> */}
+                <p className="mb-2 text-lg font-medium">{event.created.content}</p>
               </div>
             )}
             <div>

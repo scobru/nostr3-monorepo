@@ -19,7 +19,7 @@
     "@rainbow-me/rainbowkit": "1.1.2",
     "@scobru/crypto-ipfs": "^1.1.11",
     "@scobru/mogu": "^1.2.6",
-    "@scobru/nostr3": "^1.0.4",
+    "@scobru/nostr3": "^1.0.5",
     "@types/fs-extra": "^11.0.4",
     "@uniswap/sdk-core": "^4.0.1",
     "@uniswap/v2-sdk": "^3.0.1",
