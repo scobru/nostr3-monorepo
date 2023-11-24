@@ -1,0 +1,37 @@
+server {
+    listen 80;
+    server_name  <%-s.publicDomain%>; 
+
+    location / {
+            return 302 https: //$http_host$request_uri;
+    }
+    
+    location /.well-known/acme-challenge/ {
+            root <%-s.staticWebRoot%>;
+    }
+
+    location /.well-known/captain-identifier {
+            root <%-s.staticWebRoot%>;
+    }
+}
+
+
+server {
+    listen              443 ssl http2;
+    ssl_certificate     <%-s.crtPath%>;
+    ssl_certificate_key <%-s.keyPath%>;
+
+    server_name  <%-s.publicDomain%>;
+
+    # Configurazione Proxy per WebSocket
+    location / {
+        proxy_pass ws: //51.255.48.202:4736/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

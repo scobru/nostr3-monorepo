@@ -134,10 +134,8 @@ const Home: NextPage = () => {
   const loadProfile = async (loadedPubKey: any) => {
     try {
       const result = await relay.list([{ kinds: [0], authors: [loadedPubKey] }]);
-      console.log("result", result);
       const parsedResult = JSON.parse(result[0].content);
       if (result && result[0] && result[0].content) {
-        console.log("Profile Data:", parsedResult); // Stampa per debug
         return parsedResult;
       } else {
         console.warn("Nessun profilo trovato o dati non validi per la chiave:", loadedPubKey);
@@ -215,8 +213,6 @@ const Home: NextPage = () => {
     // Retrieve events from the relay
     const events = await relay.list([{ kinds: [1] }]);
 
-    console.log(signedEvent);
-
     // Set state with the latest event and all retrieved events
     setEvent({ created: signedEvent, all: events });
 
@@ -224,9 +220,7 @@ const Home: NextPage = () => {
   };
 
   const handleFetchEvents = async () => {
-    console.log("Retrieving events from the relay");
     const events = await relay.list([{ kinds: [1] }]);
-    console.log("Retrieved events", events);
     if (!tagToFind) {
       setEvent({ all: events });
       //setIsModalOpen(true);
@@ -240,25 +234,36 @@ const Home: NextPage = () => {
     //setIsModalOpen(true);
   };
   const handleFetchMyEvents = async () => {
-    console.log("Retrieving events from the relay");
     const events = await relay.list([{ kinds: [1], authors: [publicKey] }]);
-    console.log("Retrieved events", events);
     setPastEvents(events);
   };
 
   useEffect(() => {
     if (connected && pastEvents.length === 0) {
       handleFetchMyEvents();
+      const run = async () => {
+        try {
+          const profileData = await loadProfile(publicKey);
+          setProfileDetails(profileData);
+        } catch (error) {
+          notification.error("Error loading profile");
+        }
+      };
+      run();
     }
   }, [connected]);
+
+  useEffect(() => {
+    if (relay && relay.status == 3) {
+      setConnected(false);
+    }
+  }, [relay]);
 
   useEffect(() => {
     if (event && event.all) {
       const loadProfiles = async () => {
         const _loadedProfiles = await Promise.all(event.all.map((e: { pubkey: any }) => loadProfile(e.pubkey)));
-        Promise.all(_loadedProfiles).then(values => {
-          console.log(values);
-        });
+        Promise.all(_loadedProfiles).then(values => {});
         if (_loadedProfiles) setProfiles(_loadedProfiles as any[]);
       };
 
@@ -270,7 +275,6 @@ const Home: NextPage = () => {
     const fetchRelays = async () => {
       try {
         const response = await fetch("https://api.nostr.watch/v1/online");
-        console.log(response);
         const data = await response.json();
         setRelayList(data); // Assuming the API returns an array of relays
       } catch (error) {
@@ -379,7 +383,6 @@ const Home: NextPage = () => {
     setPublicKey(getPublicKey(nostrKeys.sec));
     setNostrPublicKey(nostrKeys.npub);
     setNProfile(nostrKeys.nprofile);
-    console.log("pubkey:", nostrKeys.pub);
     try {
       const profileData = await loadProfile(nostrKeys.pub);
       setProfileDetails(profileData);
@@ -396,9 +399,6 @@ const Home: NextPage = () => {
         pubKey: nostrKeys.pub,
       }),
     });
-
-    console.log("nostrKeys:", nostrKeys);
-    console.log("response:", response);
   };
 
   const handleAddTag = (tagString: string) => {
@@ -419,6 +419,7 @@ const Home: NextPage = () => {
     relay.on("connect", async () => {
       console.log(`Connected to ${relay.url}`);
       // Subscribe to events authored by your public key
+      setConnected(true);
       const sub = relay.sub([
         {
           authors: [publicKey], // Your public key
@@ -439,7 +440,6 @@ const Home: NextPage = () => {
 
     await relay.connect();
     setRelay(relay);
-    setConnected(true);
   };
 
   const generateKeyPairFromSeed = async () => {
@@ -472,7 +472,7 @@ const Home: NextPage = () => {
       <div className="w-2/4 mx-auto">
         {signer?.account ? (
           <div className="m-5 break-all">
-            <h1 className="text-8xl mb-2 font-semibold">NOSTR3</h1>
+            <h1 className="text-8xl mb-4 font-semibold">NOSTR3</h1>
             <h1 className="text-xl mb-5">generate programmatically key for nostr protocol with your web3 address</h1>
             <nav className="flex flex-wrap p-4">
               <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={async () => await handleGenerateKeys()}>
@@ -491,7 +491,7 @@ const Home: NextPage = () => {
               <dialog id="relay_modal" className="modal">
                 <div className="modal-box">
                   <h1 className="text-3xl font-thin mb-4">RELAY</h1>
-                  <label className="block mb-4">
+                  {/* <label className="block mb-4">
                     <select
                       className="select select-bordered w-full mb-2 my-2"
                       value={relayURL}
@@ -503,8 +503,8 @@ const Home: NextPage = () => {
                         </option>
                       ))}
                     </select>
-                  </label>
-                  <button
+                  </label> */}
+                  {/* <button
                     className=" w-full  btn btn-primary mb-5"
                     onClick={() => {
                       const relay_modal = document.getElementById("relay_modal") as HTMLDialogElement;
@@ -513,23 +513,24 @@ const Home: NextPage = () => {
                       handleConnectRelay();
                     }}
                   >
-                    Connect to Relay
-                  </button>
+                    Connect Relays
+                  </button> */}
                   <button
                     className=" w-full  btn btn-primary mb-5"
                     onClick={() => {
                       const relay_modal = document.getElementById("relay_modal") as HTMLDialogElement;
                       if (relay_modal) relay_modal;
-                      setRelayURL("ws://51.255.48.202:4736");
+                      setRelayURL("wss://nostr-bouncer.scobrudot.dev");
                       handleConnectRelay();
                     }}
                   >
-                    Use Nostr3 Relay
+                    Connect Relays
                   </button>
                   <button
                     className=" w-full  btn btn-primary mb-5"
                     onClick={() => {
                       relay.close();
+                      setConnected(false);
                     }}
                   >
                     Disconnect
@@ -750,10 +751,6 @@ const Home: NextPage = () => {
                     {searchPublicKey.pubkey && (
                       <div>
                         <div className="text-sm ">{searchPublicKey.pubkey}</div>
-                        <div className=" text-2xl font-semibold">
-                          {JSON.parse(searchPublicKey.profile).display_name}
-                        </div>
-                        <div className=" ">{JSON.parse(searchPublicKey.profile).about}</div>
                       </div>
                     )}
                   </div>
@@ -767,9 +764,9 @@ const Home: NextPage = () => {
               </dialog>
             </nav>
             {connected ? (
-              <p className="mb-4 text-bold text-2xl text-success">📡 Connected</p>
+              <p className="mb-4 text-bold text-xl text-success">📡 Connected</p>
             ) : (
-              <p className="mb-4 text-bold text-2xl text-success">Not Connected</p>
+              <p className="mb-4 text-bold text-xl text-success">Not Connected</p>
             )}
             <ProfileDetailsBox />
             {event && event.created && (
