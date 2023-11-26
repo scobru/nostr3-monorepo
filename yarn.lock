@@ -1351,6 +1351,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@noble/secp256k1@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "@noble/secp256k1@npm:2.0.0"
+  checksum: 945d48a1142751658e89142c33a53c3d7cf8f0ce7cf43bd36b4dcfc1819bc7dc9c227737aca2c55a5699ff548122e21ca19395eb7682a1cea9d5e5e9cda22812
+  languageName: node
+  linkType: hard
+
 "@nodelib/fs.scandir@npm:2.1.5":
   version: 2.1.5
   resolution: "@nodelib/fs.scandir@npm:2.1.5"
@@ -1867,7 +1874,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@scobru/mogu@npm:^1.2.5, @scobru/mogu@npm:^1.2.6":
+"@scobru/mogu@npm:^1.2.5":
   version: 1.2.6
   resolution: "@scobru/mogu@npm:1.2.6"
   dependencies:
@@ -1895,6 +1902,56 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@scobru/mogu@npm:^1.2.7":
+  version: 1.2.7
+  resolution: "@scobru/mogu@npm:1.2.7"
+  dependencies:
+    "@scobru/crypto-ipfs": ^1.1.8
+    "@types/express": ^4.17.20
+    "@types/libsodium-wrappers": ^0.7.12
+    "@types/node": ^20.8.10
+    "@types/ws": ^8.5.8
+    asymmetric-crypto: ^1.0.2
+    axios: ^1.6.0
+    dotenv: ^16.3.1
+    ethers: 5.0.0
+    express: ^4.18.2
+    fs-extra: ^11.1.1
+    libsodium-wrappers: ^0.7.13
+    morgan: ^1.10.0
+    nostr-tools: ^1.17.0
+    prettier: ^3.0.3
+    ts-node: ^10.9.1
+    tsc: ^2.0.4
+    typescript: ^5.2.2
+    winston: ^3.11.0
+    ws: ^8.14.2
+  checksum: a088f12c44b2912e0d456c3ad7fc0ad62b2751f2ac96ec9fb38ad19c02164e262ace546f3a555802596b11ad8a9319598df8666295e0aa8ad387b9053a4be989
+  languageName: node
+  linkType: hard
+
+"@scobru/nostr3@npm:^1.0.11":
+  version: 1.0.11
+  resolution: "@scobru/nostr3@npm:1.0.11"
+  dependencies:
+    "@noble/secp256k1": ^2.0.0
+    "@scobru/crypto-ipfs": ^1.1.8
+    "@scobru/mogu": ^1.2.5
+    "@types/node": ^20.8.10
+    axios: ^1.6.0
+    dotenv: ^16.3.1
+    ethers: ^6.8.1
+    fs-extra: ^11.1.1
+    nostr-tools: ^1.17.0
+    prettier: ^3.0.3
+    ts-node: ^10.9.1
+    tsc: ^2.0.4
+    typescript: ^5.2.2
+    ws: ^8.14.2
+  checksum: 06fb2d0fff208f493dd3ea0d6ed8350d8174afb84114d19d5b680e9458a147741a93743bd7e63d2f8caae4a34567c5b46268c61120bb45cea427a9a9c3a49fb0
+  languageName: node
+  linkType: hard
+
 "@scobru/nostr3@npm:^1.0.5":
   version: 1.0.5
   resolution: "@scobru/nostr3@npm:1.0.5"
@@ -1913,27 +1970,6 @@ __metadata:
     typescript: ^5.2.2
     ws: ^8.14.2
   checksum: c0d73f7e1e547672649d50a56046b4b4469f9fc3532dbc1d1d49941076c7c1376ebf2cece65e078eeec22084ef2107f7fae978a48b292ac63a244aa83ea45473
-  languageName: node
-  linkType: hard
-
-"@scobru/nostr3@npm:^1.0.6":
-  version: 1.0.6
-  resolution: "@scobru/nostr3@npm:1.0.6"
-  dependencies:
-    "@scobru/crypto-ipfs": ^1.1.8
-    "@scobru/mogu": ^1.2.5
-    "@types/node": ^20.8.10
-    axios: ^1.6.0
-    dotenv: ^16.3.1
-    ethers: ^6.8.1
-    fs-extra: ^11.1.1
-    nostr-tools: ^1.17.0
-    prettier: ^3.0.3
-    ts-node: ^10.9.1
-    tsc: ^2.0.4
-    typescript: ^5.2.2
-    ws: ^8.14.2
-  checksum: 5f648ba81c3601e991ad5d17b485f3f4a27540cc8709a57ed57ef579d742f276d575e1fa3c5c5ffc95989b544837d132dfb90b5eb47354a281fb44e1cfc3a0f9
   languageName: node
   linkType: hard
 
@@ -2074,13 +2110,14 @@ __metadata:
     "@heroicons/react": ^2.0.11
     "@rainbow-me/rainbowkit": 1.1.2
     "@scobru/crypto-ipfs": ^1.1.11
-    "@scobru/mogu": ^1.2.6
-    "@scobru/nostr3": ^1.0.6
+    "@scobru/mogu": ^1.2.7
+    "@scobru/nostr3": ^1.0.11
     "@trivago/prettier-plugin-sort-imports": ^4.1.1
     "@types/fs-extra": ^11.0.4
     "@types/node": ^17.0.35
     "@types/react": ^18.0.9
     "@types/react-copy-to-clipboard": ^5.0.4
+    "@types/react-lazy-load-image-component": ^1
     "@types/ws": ^8
     "@typescript-eslint/eslint-plugin": ^5.39.0
     "@uniswap/sdk-core": ^4.0.1
@@ -2104,6 +2141,7 @@ __metadata:
     react-copy-to-clipboard: ^5.1.0
     react-dom: ^18.2.0
     react-hot-toast: ^2.4.0
+    react-lazy-load-image-component: ^1.6.0
     tailwindcss: ^3.3.3
     type-fest: ^4.6.0
     typescript: ^5.1.6
@@ -2937,6 +2975,16 @@ __metadata:
   dependencies:
     "@types/react": "*"
   checksum: c0fe51b79a393d4c1fa5f8a288793c03f791e0d979abaa6ae587de53b8e3bc1f05e3379e7539077a21c9d66c12c3fad3ab6684f836f2ba7a55b9589de8500738
+  languageName: node
+  linkType: hard
+
+"@types/react-lazy-load-image-component@npm:^1":
+  version: 1.6.3
+  resolution: "@types/react-lazy-load-image-component@npm:1.6.3"
+  dependencies:
+    "@types/react": "*"
+    csstype: ^3.0.2
+  checksum: ccad5b7c5d801cae2bf34f2d9528d6e0dd615f4c675d6092ce9ab9296d43e8df171e99d65ca28897f98345c42c0bb37f3a69f4891f4be81af26eaae02c4f2031
   languageName: node
   linkType: hard
 
@@ -11159,6 +11207,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lodash.debounce@npm:^4.0.8":
+  version: 4.0.8
+  resolution: "lodash.debounce@npm:4.0.8"
+  checksum: a3f527d22c548f43ae31c861ada88b2637eb48ac6aa3eb56e82d44917971b8aa96fbb37aa60efea674dc4ee8c42074f90f7b1f772e9db375435f6c83a19b3bc6
+  languageName: node
+  linkType: hard
+
 "lodash.isequal@npm:4.5.0":
   version: 4.5.0
   resolution: "lodash.isequal@npm:4.5.0"
@@ -11170,6 +11225,13 @@ __metadata:
   version: 4.6.2
   resolution: "lodash.merge@npm:4.6.2"
   checksum: ad580b4bdbb7ca1f7abf7e1bce63a9a0b98e370cf40194b03380a46b4ed799c9573029599caebc1b14e3f24b111aef72b96674a56cfa105e0f5ac70546cdc005
+  languageName: node
+  linkType: hard
+
+"lodash.throttle@npm:^4.1.1":
+  version: 4.1.1
+  resolution: "lodash.throttle@npm:4.1.1"
+  checksum: 129c0a28cee48b348aef146f638ef8a8b197944d4e9ec26c1890c19d9bf5a5690fe11b655c77a4551268819b32d27f4206343e30c78961f60b561b8608c8c805
   languageName: node
   linkType: hard
 
@@ -13941,6 +14003,19 @@ __metadata:
   version: 16.13.1
   resolution: "react-is@npm:16.13.1"
   checksum: f7a19ac3496de32ca9ae12aa030f00f14a3d45374f1ceca0af707c831b2a6098ef0d6bdae51bd437b0a306d7f01d4677fcc8de7c0d331eb47ad0f46130e53c5f
+  languageName: node
+  linkType: hard
+
+"react-lazy-load-image-component@npm:^1.6.0":
+  version: 1.6.0
+  resolution: "react-lazy-load-image-component@npm:1.6.0"
+  dependencies:
+    lodash.debounce: ^4.0.8
+    lodash.throttle: ^4.1.1
+  peerDependencies:
+    react: ^15.x.x || ^16.x.x || ^17.x.x || ^18.x.x
+    react-dom: ^15.x.x || ^16.x.x || ^17.x.x || ^18.x.x
+  checksum: ab6db459c81a311e621ceb8be184472108ad5cff85cd5b80a52c0c16be808f8084a5fca756695eb0c84f543af6715a3bb1b50e702dd2485cb9162b30bcce3e35
   languageName: node
   linkType: hard
 

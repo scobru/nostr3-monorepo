@@ -79,7 +79,6 @@ export default async function handler(
       console.log("CID exists!");
 
       state = await mogu.load(String(cid));
-
       console.log("Old CID", cid);
       console.log("State:", state);
 
@@ -92,6 +91,7 @@ export default async function handler(
           state = mogu.updateNode(node);
           console.log(state);
 
+          await mogu.unpin(cid);
           const hash = await mogu.store();
           console.log("New CID", hash);
 
