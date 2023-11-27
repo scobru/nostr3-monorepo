@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from "react";
 import MecenateHelper from "@scobru/crypto-ipfs";
 import { Nostr3 } from "@scobru/nostr3/dist/nostr3";
+import { ec } from "elliptic";
 import type { NextPage } from "next";
 import { finishEvent, getPublicKey, relayInit } from "nostr-tools";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/blur.css";
-import { parseEther, toBytes } from "viem";
+import { checksumAddress, createWalletClient, http, parseEther, toBytes } from "viem";
 import { toHex } from "viem";
 import { keccak256 } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { optimism } from "viem/chains";
 import { useWalletClient } from "wagmi";
 import { Address } from "~~/components/scaffold-eth";
 import { BlockieAvatar } from "~~/components/scaffold-eth";
@@ -25,7 +28,7 @@ const Home: NextPage = () => {
   const [activeTab, setActiveTab] = useState("pastEvents");
   const [showKeys, setShowKeys] = useState(false);
   // const [relayList, setRelayList] = useState([]);
-  //const [wallet, setWallet] = useState<any>(null);
+  const [wallet, setWallet] = useState<any>(null);
   const [metadata, setMetadata] = useState<any>({
     name: "",
     display_name: "",
@@ -94,6 +97,8 @@ const Home: NextPage = () => {
   const [nostr3, setNostr3] = useState<any>(null);
   const [pubKeyReceiver, setPubKeyReceiver] = useState("");
   const [amountToTip, setAmountToTip] = useState({});
+
+  const EC = new ec("secp256k1");
 
   const openTipModal = () => {
     const tip_modal = document.getElementById("tip_modal") as HTMLDialogElement;
@@ -476,6 +481,64 @@ const Home: NextPage = () => {
     return events[0].content;
   };
 
+  function doesNostrKeyCorrespondToEthereumAddress(nostrPubKey: string, ethAddress: string) {
+    ethAddress = ethAddress.toLowerCase().replace("0x", "");
+
+    console.log("ethAddress: ", ethAddress);
+
+    for (const prefix of ["02", "03"]) {
+      try {
+        const pkBytes = Buffer.from(prefix + nostrPubKey, "hex");
+        console.log("pkBytes: ", pkBytes);
+
+        // Ottenere la chiave pubblica completa (non compressa)
+        const fullPk = EC.keyFromPublic(pkBytes).getPublic(false);
+        console.log("fullPk: ", fullPk);
+        const uncompressed = Buffer.from(fullPk.encode("hex", false), "hex");
+        console.log("uncompressed: ", uncompressed);
+
+        // Calcolare l'hash Keccak-256 della chiave pubblica
+        const hash = keccak256.create();
+        console.log("hash: ", hash);
+        hash.update(uncompressed.slice(1)); // Rimuove il byte iniziale 0x04
+        const resH = hash.hex();
+        console.log("resH: ", resH);
+        console.log("resH: ", resH.slice(24));
+
+        if (resH.slice(24) === ethAddress) {
+          return true;
+        }
+      } catch (err) {
+        // Gestire gli errori qui se necessario
+      }
+    }
+    return false;
+  }
+
+  const handleSearchFromPubkey3 = async (pubKey: string) => {
+    const xValue = keccak256(Buffer.from(pubKey, "hex"));
+    for (const evenOrOdd of [false, true]) {
+      try {
+        const publicKeyPoint = EC.keyFromPublic({ x: xValue, y: evenOrOdd }).getPublic();
+        const yValue = publicKeyPoint.getY().toString(16);
+        const keyPair = EC.keyFromPublic({ x: xValue, y: yValue }); // Necessario calcolare o specificare y
+        const uncompressedPublicKey = keyPair.getPublic(false).encode("hex", false).slice(2);
+        const result = doesNostrKeyCorrespondToEthereumAddress(publicKeyPoint, wallet.account.address);
+
+        if (result) {
+          notification.success("OK");
+        } else {
+          notification.error("Fail");
+        }
+        const addressHash = keccak256(Buffer.from(uncompressedPublicKey, "hex"));
+        const address = "0x" + addressHash.slice(-40);
+        return address;
+      } catch (error) {
+        console.error("Errore nel calcolo di y:", error);
+      }
+    }
+  };
+
   const handleRegisterEVM = async (keys: { pub: any; sec: string }) => {
     const messageEvent: any = {
       kind: 30078,
@@ -639,14 +702,14 @@ const Home: NextPage = () => {
     setNProfile(nostrKeys.nprofile);
     setNostr3(nostr3);
 
-    // const pkHex = "0x" + nostrKeys.sec;
-    // const newWallet = createWalletClient({
-    //   account: privateKeyToAccount(pkHex as any),
-    //   chain: baseGoerli,
-    //   transport: http(),
-    // });
+    const pkHex = "0x" + nostrKeys.sec;
+    const newWallet = createWalletClient({
+      account: privateKeyToAccount(pkHex as any),
+      chain: optimism,
+      transport: http(),
+    });
 
-    // setWallet(newWallet);
+    setWallet(newWallet);
 
     console.log(nostrKeys);
     try {
@@ -712,11 +775,11 @@ const Home: NextPage = () => {
                   NIP19 Nostr Profile: <span className="font-normal">{nProfile}</span>
                 </li>
               )}
-              {/* {wallet && (
+              {wallet && (
                 <li className="font-bold p-2">
                   EVM Address: <span className="font-normal">{wallet.account.address}</span>
                 </li>
-              )} */}
+              )}
             </ul>
           </div>
         )}
@@ -759,7 +822,7 @@ const Home: NextPage = () => {
   //////////////////////////////////////////////////////////////////////////////////////
   // Update Profile ////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////
-  
+
   const updateMetadata = (key: string, value: string) => {
     setMetadata({ ...metadata, [key]: value });
   };
@@ -800,9 +863,9 @@ const Home: NextPage = () => {
 
   return (
     <div className="flex items-center flex-col flex-grow pt-10 ">
-      <div className="w-2/4 mx-auto">
+      <div className="w-full">
         {signer?.account ? (
-          <div className="m-5 break-all">
+          <div className="m-5 break-all mx-auto w-3/4">
             <h1 className="text-8xl mb-10 font-semibold">NOSTR3</h1>
             <h1 className="text-xl mb-5">generate programmatically key for nostr protocol with your web3 address</h1>
             <p className="text-base">
@@ -816,19 +879,22 @@ const Home: NextPage = () => {
               the best Nostr experience, we suggest pairing it with open-source clients. Happy Nostring!
             </p>
 
-            <div className="my-2 break-all bg-base-100 p-5">
+            <div className="my-2 break-all bg-base-100 p-2">
               <pre>
                 <p>
                   NOSTR3 CUSTOM EVENT
                   <br />
-                  <strong>
-                    This is the event emitted by nostr3 when you link your evm account with your nostr pubkey.
-                  </strong>
+                  <p className="break-all">
+                    This is the event emitted by nostr3
+                    <br /> when you link your evm account
+                    <br />
+                    with your nostr pubkey.
+                  </p>
                 </p>
                 {"const messageEvent: any = {"} <br />
                 {"  kind: 30078,"}
                 <br />
-                {"  created_at: Math.floor(Date.now() / 1000),"}
+                {"  created_at: Date.now(),"}
                 <br />
                 {'  tags: [["d", "nostr3"]],'}
                 <br />
@@ -874,7 +940,7 @@ const Home: NextPage = () => {
                   <button
                     className="btn btn-primary"
                     onClick={async () => {
-                      const receiver = await handleSearchFromPubkey2(pubKeyReceiver);
+                      const receiver = await handleSearchFromPubkey3(pubKeyReceiver);
                       if (receiver) {
                         await handleTip(receiver);
                       } else {
