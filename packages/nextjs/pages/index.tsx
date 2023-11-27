@@ -16,6 +16,8 @@ import { Address } from "~~/components/scaffold-eth";
 import { BlockieAvatar } from "~~/components/scaffold-eth";
 import { notification } from "~~/utils/scaffold-eth";
 
+const publicKeyToAddress = require("ethereum-public-key-to-address");
+
 const Home: NextPage = () => {
   const { data: signer } = useWalletClient();
   const [privateKey, setPrivateKey] = useState("");
@@ -486,7 +488,7 @@ const Home: NextPage = () => {
 
     console.log("ethAddress: ", ethAddress);
 
-    for (const prefix of ["02", "03"]) {
+    for (const prefix of ["04"]) {
       try {
         const pkBytes = Buffer.from(prefix + nostrPubKey, "hex");
         console.log("pkBytes: ", pkBytes);
@@ -516,15 +518,18 @@ const Home: NextPage = () => {
   }
 
   const handleSearchFromPubkey3 = async (pubKey: string) => {
-    const xValue = keccak256(Buffer.from(pubKey, "hex"));
+    console.log(wallet);
+
+    const xValue = keccak256("0x04" + pubKey);
+
     for (const evenOrOdd of [false, true]) {
       try {
         const publicKeyPoint = EC.keyFromPublic({ x: xValue, y: evenOrOdd }).getPublic();
         const yValue = publicKeyPoint.getY().toString(16);
         const keyPair = EC.keyFromPublic({ x: xValue, y: yValue }); // Necessario calcolare o specificare y
         const uncompressedPublicKey = keyPair.getPublic(false).encode("hex", false).slice(2);
-        const result = doesNostrKeyCorrespondToEthereumAddress(publicKeyPoint, wallet.account.address);
-
+        console.log(uncompressedPublicKey);
+        const result = doesNostrKeyCorrespondToEthereumAddress("04" + pubKey, wallet.account.address);
         if (result) {
           notification.success("OK");
         } else {
@@ -532,6 +537,7 @@ const Home: NextPage = () => {
         }
         const addressHash = keccak256(Buffer.from(uncompressedPublicKey, "hex"));
         const address = "0x" + addressHash.slice(-40);
+        console.log("Address:", address);
         return address;
       } catch (error) {
         console.error("Errore nel calcolo di y:", error);
