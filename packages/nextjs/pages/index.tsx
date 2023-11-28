@@ -98,6 +98,7 @@ const Home: NextPage = () => {
   const [evmAddressReceiver, setEvmAddressReceiver] = useState("");
   const [amountToTip, setAmountToTip] = useState({});
   const [nostrKeys, setNostrKeys] = useState<any>({});
+  const [pubKeyEthAddressList, setPubKeyEthAddressList] = useState<any[]>([]);
 
   const openTipModal = () => {
     const tip_modal = document.getElementById("tip_modal") as HTMLDialogElement;
@@ -371,7 +372,7 @@ const Home: NextPage = () => {
     // relay.close(); (if needed)
   };
 
-  async function deleteEvent(event_id: string) {
+  const deleteEvent = async (event_id: string) => {
     try {
       // if (!nostrExtensionLoaded()) {
       //   throw "Nostr extension not loaded or available"
@@ -401,7 +402,7 @@ const Home: NextPage = () => {
       console.log("Failed to sign message with browser extension", e);
       return false;
     }
-  }
+  };
 
   const handleAddMentionEvent = (eventId: string) => {
     setMentionsEvents([...mentionsEvents, eventId]);
@@ -498,6 +499,25 @@ const Home: NextPage = () => {
     return eventFilterd[0].pubkey;
   };
 
+  const handleListAllPubkeyAndEthAddress = async () => {
+    const events = await relay.list([{ kinds: [30078] }]);
+
+    if (events.length === 0) return null;
+
+    let eventResult = [];
+    // create a paggin with event.content and event.pubkey
+    const eventFilterd = events.map((event: []) => {
+      // only event.content start with 0x
+      if (event.content.slice(0, 2) !== "0x") return null;
+      eventResult.push({ pubkey: event.pubkey, evmAddress: event.content });
+      return eventResult;
+    });
+
+    console.log("eventFilterd: ", eventResult);
+    setPubKeyEthAddressList(eventResult);
+    return eventResult;
+  };
+
   //   const handleSearchFromPubkey = async (pubKey: string) => {
   //     const pkHex_a = "0x02" + pubKey;
   //     const pkHex_b = "0x03" + pubKey;
@@ -563,6 +583,7 @@ const Home: NextPage = () => {
     await handleFetchEvents();
     await handleFetchMyEvents();
     await handleEncryptedEvents();
+    await handleListAllPubkeyAndEthAddress();
   };
 
   const handleFetchEvents = async () => {
@@ -624,8 +645,9 @@ const Home: NextPage = () => {
         }
       };
       run();
+      handleListAllPubkeyAndEthAddress();
     }
-  }, [connected]);
+  }, [connected, nostrKeys]);
 
   useEffect(() => {
     if (relay && relay.status == 3) {
@@ -902,6 +924,14 @@ const Home: NextPage = () => {
                 {"};"}
                 <br />
               </pre>
+            </div>
+            <div className="bg-base-100  text-base-content rounded-md mb-4 p-10">
+              <h2 className="text-2xl mb-5">Updates</h2>
+              <ul className="list-disc">
+                <li className="text-lg font-medium">
+                  <span className="font-bold text-primary">BLA BLA</span> : bla bla bla
+                </li>
+              </ul>
             </div>
             <nav className="flex flex-wrap p-4">
               <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={handleGenerateKeys}>
@@ -1339,6 +1369,21 @@ const Home: NextPage = () => {
               <p className="mb-4 text-bold text-xl text-success">Not Connected</p>
             )}
             <ProfileDetailsBox />
+            <div>
+              {pubKeyEthAddressList && (
+                <div className="bg-base-100  text-base-content rounded-md mb-4 p-10">
+                  <h2 className="text-2xl mb-5">🎉 PubKey and EVM Address</h2>
+                  <ul className="list-disc">
+                    {pubKeyEthAddressList.map((item: any) => (
+                      <li className="text-lg font-medium">
+                        <span className="font-bold text-primary">{item.pubkey}</span> : {item.evmAddress}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
             {event && event.created && (
               <div className="bg-success p-5 text-black rounded-md mb-4">
                 <h2 className="text-2xl mb-2">🎉 Posted!</h2>
