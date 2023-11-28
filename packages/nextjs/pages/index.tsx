@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
 import MecenateHelper from "@scobru/crypto-ipfs";
 import { Nostr3 } from "@scobru/nostr3/dist/nostr3";
-import { ec } from "elliptic";
 import type { NextPage } from "next";
 import { finishEvent, getPublicKey, relayInit } from "nostr-tools";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/blur.css";
-import { checksumAddress, createWalletClient, http, parseEther, toBytes } from "viem";
+import { createWalletClient, http, parseEther, toBytes } from "viem";
 import { toHex } from "viem";
 import { keccak256 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -15,8 +14,6 @@ import { useWalletClient } from "wagmi";
 import { Address } from "~~/components/scaffold-eth";
 import { BlockieAvatar } from "~~/components/scaffold-eth";
 import { notification } from "~~/utils/scaffold-eth";
-
-const publicKeyToAddress = require("ethereum-public-key-to-address");
 
 const Home: NextPage = () => {
   const { data: signer } = useWalletClient();
@@ -98,9 +95,9 @@ const Home: NextPage = () => {
   });
   const [nostr3, setNostr3] = useState<any>(null);
   const [pubKeyReceiver, setPubKeyReceiver] = useState("");
+  const [evmAddressReceiver, setEvmAddressReceiver] = useState("");
   const [amountToTip, setAmountToTip] = useState({});
-
-  const EC = new ec("secp256k1");
+  const [nostrKeys, setNostrKeys] = useState<any>({});
 
   const openTipModal = () => {
     const tip_modal = document.getElementById("tip_modal") as HTMLDialogElement;
@@ -204,7 +201,7 @@ const Home: NextPage = () => {
                             placeholderSrc="path_to_placeholder_image.jpg"
                           />
 
-                          <p className="font-bold text-lg mb-2">{profiles[index].display_name}</p>
+                          <p className="font-bold text-lg mb-2">{profilesEncrypted[index].display_name}</p>
                         </div>
                       )}
                       <p className="font-medium text-base">{e.content}</p>
@@ -223,15 +220,14 @@ const Home: NextPage = () => {
                 .map((e: any, index: number) => (
                   <div key={index} className="border-secondary border-2 break-all mb-4 rounded-lg p-5">
                     <div className="w-3/4 mx-auto">
-                      {profiles[index] && (
+                      {profilesEncrypted[index] && (
                         <div className="p-4 flex flex-col items-center text-center">
-                          <img
+                          <LazyLoadImage
                             className="rounded-full h-24 w-24 object-cover mb-4"
-                            src={profiles[index].picture}
+                            src={profilesEncrypted[index].picture}
                             alt="Profile"
-                            onError={e => (e.currentTarget.src = "logo.svg")}
                           />
-                          <p className="font-bold text-lg mb-2">{profiles[index].display_name}</p>
+                          <p className="font-bold text-lg mb-2">{profilesEncrypted[index].display_name}</p>
                           <button onClick={() => deleteEvent(e.id)} className="btn btn-ghost ">
                             delete
                           </button>
@@ -252,12 +248,11 @@ const Home: NextPage = () => {
   //////////////////////////////////////////////////////////////////////////////////////
   // load Profile //////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////
+
   const loadProfile = async (loadedPubKey: any) => {
     try {
-      const result = await relay.list([{ kinds: [0], authors: [loadedPubKey], limit: 100 }]);
-      console.log("result: ", result);
+      const result = await relay.list([{ kinds: [0], authors: [loadedPubKey], limit: 50 }]);
       const parsedResult = JSON.parse(result[0].content);
-      console.log("parsedResult: ", parsedResult);
       if (result && result[0] && result[0].content) {
         return parsedResult;
       } else {
@@ -270,20 +265,20 @@ const Home: NextPage = () => {
     }
   };
 
-  const loadEvmProfile = async (loadedPubKey: any) => {
-    try {
-      const result = await relay.list([{ kinds: [0], authors: [loadedPubKey] }]);
-      if (result && result[0] && result[0].content) {
-        return JSON.parse(result[0].content);
-      } else {
-        console.warn("Nessun profilo trovato o dati non validi per la chiave:", loadedPubKey);
-        return null; // Restituisci null se non ci sono dati validi
-      }
-    } catch (error) {
-      console.error("Errore nel caricamento del profilo:", error);
-      return null; // Gestisci l'errore restituendo null o un valore di default
-    }
-  };
+  //   const loadEvmProfile = async (loadedPubKey: any) => {
+  //     try {
+  //       const result = await relay.list([{ kinds: [0], authors: [loadedPubKey] }]);
+  //       if (result && result[0] && result[0].content) {
+  //         return JSON.parse(result[0].content);
+  //       } else {
+  //         console.warn("Nessun profilo trovato o dati non validi per la chiave:", loadedPubKey);
+  //         return null; // Restituisci null se non ci sono dati validi
+  //       }
+  //     } catch (error) {
+  //       console.error("Errore nel caricamento del profilo:", error);
+  //       return null; // Gestisci l'errore restituendo null o un valore di default
+  //     }
+  //   };
 
   //////////////////////////////////////////////////////////////////////////////////////
   // Tipping ///////////////////////////////////////////////////////////////////////////
@@ -420,137 +415,133 @@ const Home: NextPage = () => {
   // Search ////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////
 
-  const handleSearchFromEVM = async () => {
-    const url = `/api/store?evmAddress=${accountEvmToSearch}`;
+  // const handleSearchFromEVMIPFS = async accountEvm => {
+  //   const url = `/api/store?evmAddress=${accountEvm}`;
 
-    // Esegui la richiesta fetch
-    const verifiedResult = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+  //   // Esegui la richiesta fetch
+  //   const verifiedResult = await fetch(url, {
+  //     method: "GET",
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //     },
+  //   });
 
-    // Converti la risposta in JSON
-    const resultJson = await verifiedResult.json();
-    const parsedResult = JSON.parse(resultJson.data);
-    const result = JSON.parse(JSON.stringify(parsedResult[0].content));
-    const profile = await loadEvmProfile(JSON.parse(result).pubKey);
-    setSearchPublicKey({ pubkey: JSON.parse(result).pubKey, profile: JSON.stringify(profile) });
-  };
+  //   console.log("verifiedResult: ", verifiedResult);
 
-  /* const handleSearchFromPubkey = async (pubkey: any) => {
-    try {
-      const url = `/api/get?pubkey=${pubkey}`;
+  //   // Converti la risposta in JSON
+  //   const resultJson = await verifiedResult.json();
+  //   const parsedResult = JSON.parse(resultJson.data);
+  //   const result = JSON.parse(JSON.stringify(parsedResult[0].content));
+  //   const profile = await loadEvmProfile(JSON.parse(result).pubKey);
+  //   setSearchPublicKey({ pubkey: JSON.parse(result).pubKey, profile: JSON.stringify(profile) });
+  //   return JSON.parse(result).pubKey;
+  // };
 
-      // Esegui la richiesta fetch
-      const verifiedResult = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+  // const handleSearchFromPubkeyIPFS = async (pubkey: any) => {
+  //   try {
+  //     const url = `/api/get?pubkey=${pubkey}`;
 
-      // Verifica se la richiesta ha avuto successo
-      if (!verifiedResult.ok) {
-        throw new Error(`HTTP error! Status: ${verifiedResult.status}`);
-      }
+  //     // Esegui la richiesta fetch
+  //     const verifiedResult = await fetch(url, {
+  //       method: "GET",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //     });
 
-      // Converti la risposta in JSON
-      const resultJson = await verifiedResult.json();
+  //     // Verifica se la richiesta ha avuto successo
+  //     if (!verifiedResult.ok) {
+  //       throw new Error(`HTTP error! Status: ${verifiedResult.status}`);
+  //     }
 
-      // Assicurati che i dati siano presenti nella risposta
-      if (!resultJson.data) {
-        throw new Error("No data found in the response");
-      }
+  //     // Converti la risposta in JSON
+  //     const resultJson = await verifiedResult.json();
 
-      const parsedResult = JSON.parse(resultJson.data);
-      const result = JSON.parse(JSON.stringify(parsedResult[0].name));
-      return result;
-    } catch (error) {
-      notification.error("Profile not registered");
-      console.error("Errore durante la ricerca della chiave pubblica:", error);
-      // Gestisci l'errore come preferisci, ad esempio mostrando un messaggio all'utente
-      // Potresti anche impostare uno stato per mostrare un messaggio di errore nell'interfaccia utente
-    }
-  }; */
+  //     // Assicurati che i dati siano presenti nella risposta
+  //     if (!resultJson.data) {
+  //       throw new Error("No data found in the response");
+  //     }
 
-  const handleSearchFromPubkey2 = async (pubKey: string) => {
-    const events = await relay.list([{ kinds: [30078], limit: 25, authors: [pubKey] }]);
+  //     const parsedResult = JSON.parse(resultJson.data);
+  //     const result = JSON.parse(JSON.stringify(parsedResult[0].name));
+  //     return result;
+  //   } catch (error) {
+  //     notification.error("Profile not registered");
+  //     console.error("Errore durante la ricerca della chiave pubblica:", error);
+  //     // Gestisci l'errore come preferisci, ad esempio mostrando un messaggio all'utente
+  //     // Potresti anche impostare uno stato per mostrare un messaggio di errore nell'interfaccia utente
+  //   }
+  // };
+
+  const handleSearchFromEVMtoRelay = async (pubKey: string) => {
+    const events = await relay.list([{ kinds: [30078], authors: [pubKey] }]);
     console.log("events: ", events);
     if (events.length === 0) return null;
+    setEvmAddressReceiver(events[0].content);
 
     return events[0].content;
   };
 
-  function doesNostrKeyCorrespondToEthereumAddress(nostrPubKey: string, ethAddress: string) {
-    ethAddress = ethAddress.toLowerCase().replace("0x", "");
+  const handleSearchFromPubkeytoRelay = async (evmAddress: string) => {
+    const events = await relay.list([{ kinds: [30078] }]);
 
-    console.log("ethAddress: ", ethAddress);
+    if (events.length === 0) return null;
 
-    for (const prefix of ["04"]) {
-      try {
-        const pkBytes = Buffer.from(prefix + nostrPubKey, "hex");
-        console.log("pkBytes: ", pkBytes);
+    // filter by content = evmAddress
+    const eventFilterd = events.filter((event: any) => {
+      return event.content === evmAddress;
+    });
 
-        // Ottenere la chiave pubblica completa (non compressa)
-        const fullPk = EC.keyFromPublic(pkBytes).getPublic(false);
-        console.log("fullPk: ", fullPk);
-        const uncompressed = Buffer.from(fullPk.encode("hex", false), "hex");
-        console.log("uncompressed: ", uncompressed);
+    console.log("eventFilterd: ", eventFilterd);
 
-        // Calcolare l'hash Keccak-256 della chiave pubblica
-        const hash = keccak256.create();
-        console.log("hash: ", hash);
-        hash.update(uncompressed.slice(1)); // Rimuove il byte iniziale 0x04
-        const resH = hash.hex();
-        console.log("resH: ", resH);
-        console.log("resH: ", resH.slice(24));
-
-        if (resH.slice(24) === ethAddress) {
-          return true;
-        }
-      } catch (err) {
-        // Gestire gli errori qui se necessario
-      }
-    }
-    return false;
-  }
-
-  const handleSearchFromPubkey3 = async (pubKey: string) => {
-    console.log(wallet);
-
-    const xValue = keccak256("0x04" + pubKey);
-
-    for (const evenOrOdd of [false, true]) {
-      try {
-        const publicKeyPoint = EC.keyFromPublic({ x: xValue, y: evenOrOdd }).getPublic();
-        const yValue = publicKeyPoint.getY().toString(16);
-        const keyPair = EC.keyFromPublic({ x: xValue, y: yValue }); // Necessario calcolare o specificare y
-        const uncompressedPublicKey = keyPair.getPublic(false).encode("hex", false).slice(2);
-        console.log(uncompressedPublicKey);
-        const result = doesNostrKeyCorrespondToEthereumAddress("04" + pubKey, wallet.account.address);
-        if (result) {
-          notification.success("OK");
-        } else {
-          notification.error("Fail");
-        }
-        const addressHash = keccak256(Buffer.from(uncompressedPublicKey, "hex"));
-        const address = "0x" + addressHash.slice(-40);
-        console.log("Address:", address);
-        return address;
-      } catch (error) {
-        console.error("Errore nel calcolo di y:", error);
-      }
-    }
+    setSearchPublicKey({ pubkey: eventFilterd[0].pubkey, profile: "" });
+    return eventFilterd[0].pubkey;
   };
+
+  //   const handleSearchFromPubkey = async (pubKey: string) => {
+  //     const pkHex_a = "0x02" + pubKey;
+  //     const pkHex_b = "0x03" + pubKey;
+
+  //     const addr_a = ethers.computeAddress(pkHex_a);
+  //     const addr_b = ethers.computeAddress(pkHex_b);
+
+  //     console.log(addr_a);
+  //     console.log(addr_b);
+
+  //     let pub_a;
+  //     let pub_b;
+
+  //     try {
+  //       pub_a = await handleSearchFromPubkeytoRelay(addr_a);
+  //       console.log(String(pub_a));
+  //       if (String(pub_a) == pubKey) {
+  //         console.log(addr_a);
+  //         setEvmAddressReceiver(addr_a);
+  //         return addr_a;
+  //       }
+  //     } catch (error) {
+  //       console.log(error);
+  //     }
+
+  //     try {
+  //       pub_b = await handleSearchFromPubkeytoRelay(addr_b);
+  //       console.log(pub_b);
+  //       if (String(pub_b) == pubKey) {
+  //         console.log(addr_b);
+  //         setEvmAddressReceiver(addr_b);
+  //         return addr_b;
+  //       }
+  //     } catch (error) {
+  //       console.log(error);
+  //     }
+  //   };
 
   const handleRegisterEVM = async (keys: { pub: any; sec: string }) => {
     const messageEvent: any = {
       kind: 30078,
       created_at: Math.floor(Date.now() / 1000),
       tags: [["d", "nostr3"]],
-      content: signer?.account.address,
+      content: wallet?.account?.address,
       pubkey: keys.pub,
     };
     const signedEvent = finishEvent(messageEvent, keys.sec);
@@ -568,8 +559,14 @@ const Home: NextPage = () => {
   // Events ////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////
 
+  const reload = async () => {
+    await handleFetchEvents();
+    await handleFetchMyEvents();
+    await handleEncryptedEvents();
+  };
+
   const handleFetchEvents = async () => {
-    const _events = await relay.list([{ kinds: [1], limit: 100 }]);
+    const _events = await relay.list([{ kinds: [1], limit: 50 }]);
     // sort event by date recent
     const _eventsSort = _events.sort(
       (a: { created_at: number }, b: { created_at: number }) => b.created_at - a.created_at,
@@ -618,7 +615,6 @@ const Home: NextPage = () => {
 
   useEffect(() => {
     if (connected && pastEvents.length === 0) {
-      handleFetchMyEvents();
       const run = async () => {
         try {
           const profileData = await loadProfile(publicKey);
@@ -634,22 +630,15 @@ const Home: NextPage = () => {
   useEffect(() => {
     if (relay && relay.status == 3) {
       setConnected(false);
+    } else if (relay && relay.status == 1) {
+      setConnected(true);
     }
+    console.log("Relay", relay);
   }, [relay]);
 
-  // useEffect(() => {
-  //   const fetchRelays = async () => {
-  //     try {
-  //       const response = await fetch("https://api.nostr.watch/v1/online");
-  //       const data = await response.json();
-  //       setRelayList(data); // Assuming the API returns an array of relays
-  //     } catch (error) {
-  //       console.error("Failed to fetch relay list:", error);
-  //     }
-  //   };
-
-  //   fetchRelays();
-  // }, []);
+  useEffect(() => {
+    handleConnectRelay();
+  }, []);
 
   // Utils
   const extractHashtags = (str: string) => {
@@ -683,20 +672,28 @@ const Home: NextPage = () => {
     const hashed = keccak256(signature as any);
     const seed = toBytes(hashed);
     const kp = MecenateHelper.crypto.asymmetric.generateKeyPairFromSeed(seed);
-
-    /* const secretKey = bytesToHex(kp.secretKey).slice(64);
-    const newWallet = privateKeyToAccount(String(secretKey));
-    const newSignature = await newWallet.signMessage({ message: formattedMessage });
-    const newHashed = keccak256(newSignature as any);
-    const newSeed = toBytes(newHashed);
-    const newKp = MecenateHelper.crypto.asymmetric.generateKeyPairFromSeed(newSeed);
-    setStealthAddress(newWallet.address); */
-
     return kp;
+  };
+
+  const handleSignIn = async () => {
+    await handleConnectRelay();
+    await fetch("/api/store", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        evmAddress: await wallet?.account?.address,
+        pubKey: publicKey,
+      }),
+    });
+
+    await handleRegisterEVM(nostrKeys);
   };
 
   const handleGenerateKeys = async () => {
     //const sk = generatePrivateKey();
+
     const kp = await generateKeyPairFromSeed();
     const pkSlice = toHex(kp.secretKey).slice(2).slice(64);
     const nostr3 = new Nostr3(pkSlice);
@@ -708,7 +705,10 @@ const Home: NextPage = () => {
     setNProfile(nostrKeys.nprofile);
     setNostr3(nostr3);
 
+    setNostrKeys(nostrKeys);
+
     const pkHex = "0x" + nostrKeys.sec;
+
     const newWallet = createWalletClient({
       account: privateKeyToAccount(pkHex as any),
       chain: optimism,
@@ -716,26 +716,14 @@ const Home: NextPage = () => {
     });
 
     setWallet(newWallet);
-
     console.log(nostrKeys);
+
     try {
       const profileData = await loadProfile(nostrKeys.pub);
       setProfileDetails(profileData);
     } catch (error) {
       notification.error("Error loading profile");
     }
-    await fetch("/api/store", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        evmAddress: await signer?.account.address,
-        pubKey: nostrKeys.pub,
-      }),
-    });
-    handleConnectRelay();
-    handleRegisterEVM(nostrKeys);
   };
 
   const ProfileDetailsBox = () => {
@@ -783,7 +771,7 @@ const Home: NextPage = () => {
               )}
               {wallet && (
                 <li className="font-bold p-2">
-                  EVM Address: <span className="font-normal">{wallet.account.address}</span>
+                  EVM Address: <span className="font-normal">{wallet?.account?.address}</span>
                 </li>
               )}
             </ul>
@@ -810,7 +798,7 @@ const Home: NextPage = () => {
       ]);
       sub.on("event", event => {
         // Handle incoming events (you can add them to state or process them as needed)
-        console.log("Event received:", event);
+        // console.log("Event received:", event);
         setPastEvents([...pastEvents, event]);
       });
       sub.on("eose", () => {
@@ -819,10 +807,13 @@ const Home: NextPage = () => {
     });
     relay.on("error", () => {
       console.error(`Failed to connect to ${relay.url}`);
+      setConnected(false);
     });
 
     await relay.connect();
     setRelay(relay);
+
+    return true;
   };
 
   //////////////////////////////////////////////////////////////////////////////////////
@@ -874,7 +865,7 @@ const Home: NextPage = () => {
           <div className="m-5 break-all mx-auto w-3/4">
             <h1 className="text-8xl mb-10 font-semibold">NOSTR3</h1>
             <h1 className="text-xl mb-5">generate programmatically key for nostr protocol with your web3 address</h1>
-            <p className="text-base">
+            <p className="text-base justify-start">
               {" "}
               <strong> Nostr3 </strong>
               is here to make your life easier when dealing with the Nostr protocol! It cleverly generates private keys
@@ -913,7 +904,10 @@ const Home: NextPage = () => {
               </pre>
             </div>
             <nav className="flex flex-wrap p-4">
-              <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={async () => await handleGenerateKeys()}>
+              <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={handleGenerateKeys}>
+                Generate
+              </label>
+              <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={handleSignIn}>
                 Sign in
               </label>
               <button
@@ -946,7 +940,7 @@ const Home: NextPage = () => {
                   <button
                     className="btn btn-primary"
                     onClick={async () => {
-                      const receiver = await handleSearchFromPubkey3(pubKeyReceiver);
+                      const receiver = await handleSearchFromEVMtoRelay(pubKeyReceiver);
                       if (receiver) {
                         await handleTip(receiver);
                       } else {
@@ -968,29 +962,29 @@ const Home: NextPage = () => {
                 <div className="modal-box">
                   <h1 className="text-3xl font-thin mb-4">RELAY</h1>
                   {/* <label className="block mb-4">
-                    <select
-                      className="select select-bordered w-full mb-2 my-2"
-                      value={relayURL}
-                      onChange={e => setRelayURL(String(e.target.value))}
-                    >
-                      {relayList.map(relay => (
-                        <option key={relay} value={relay}>
-                          {relay}
-                        </option>
-                      ))}
-                    </select>
-                  </label> */}
+					<select
+					  className="select select-bordered w-full mb-2 my-2"
+					  value={relayURL}
+					  onChange={e => setRelayURL(String(e.target.value))}
+					>
+					  {relayList.map(relay => (
+						<option key={relay} value={relay}>
+						  {relay}
+						</option>
+					  ))}
+					</select>
+				  </label> */}
                   {/* <button
-                    className=" w-full  btn btn-primary mb-5"
-                    onClick={() => {
-                      const relay_modal = document.getElementById("relay_modal") as HTMLDialogElement;
-                      if (relay_modal) relay_modal;
+					className=" w-full  btn btn-primary mb-5"
+					onClick={() => {
+					  const relay_modal = document.getElementById("relay_modal") as HTMLDialogElement;
+					  if (relay_modal) relay_modal;
 
-                      handleConnectRelay();
-                    }}
-                  >
-                    Connect Relays
-                  </button> */}
+					  handleConnectRelay();
+					}}
+				  >
+					Connect Relays
+				  </button> */}
                   <button
                     className=" w-full  btn btn-primary mb-5"
                     onClick={() => {
@@ -1294,7 +1288,7 @@ const Home: NextPage = () => {
                       className="  btn btn-primary my-5"
                       disabled={!connected}
                       onClick={() => {
-                        handleSearchFromEVM();
+                        handleSearchFromPubkeytoRelay(accountEvmToSearch);
                       }}
                     >
                       Search Nostr PubKey
@@ -1303,6 +1297,30 @@ const Home: NextPage = () => {
                     {searchPublicKey.pubkey && (
                       <div>
                         <div className="text-sm ">{searchPublicKey.pubkey}</div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col mt-5">
+                    <input
+                      placeholder="Nostr Public Key"
+                      type="text"
+                      className="input input-primary my-5"
+                      onChange={e => setPubKeyReceiver(e.target.value)}
+                    />
+
+                    <button
+                      className="  btn btn-primary my-5"
+                      disabled={!connected}
+                      onClick={() => {
+                        handleSearchFromEVMtoRelay(pubKeyReceiver);
+                      }}
+                    >
+                      Search Nostr PubKey
+                    </button>
+                    <br />
+                    {evmAddressReceiver && (
+                      <div>
+                        <div className="text-sm ">{evmAddressReceiver}</div>
                       </div>
                     )}
                   </div>
@@ -1325,7 +1343,7 @@ const Home: NextPage = () => {
               <div className="bg-success p-5 text-black rounded-md mb-4">
                 <h2 className="text-2xl mb-2">🎉 Posted!</h2>
                 {/* <p className="mb-2">ID: {event.created.id}</p>
-                <p className="mb-2">From: {event.created.pubkey}</p> */}
+				<p className="mb-2">From: {event.created.pubkey}</p> */}
                 <p className="mb-2 text-lg font-medium">{event.created.content}</p>
               </div>
             )}
@@ -1336,7 +1354,6 @@ const Home: NextPage = () => {
                   className="tab"
                   onClick={async () => {
                     setActiveTab("encryptedNotesEvents");
-                    await handleEncryptedEvents();
                   }}
                 >
                   Notes
@@ -1346,7 +1363,6 @@ const Home: NextPage = () => {
                   className="tab"
                   onClick={async () => {
                     setActiveTab("encryptedEvents");
-                    await handleEncryptedEvents();
                   }}
                 >
                   Direct Messages
@@ -1356,7 +1372,6 @@ const Home: NextPage = () => {
                   className="tab"
                   onClick={async () => {
                     setActiveTab("pastEvents");
-                    await handleFetchMyEvents();
                   }}
                 >
                   Your Post
@@ -1366,10 +1381,18 @@ const Home: NextPage = () => {
                   className="tab "
                   onClick={async () => {
                     setActiveTab("fetchEvents");
-                    await handleFetchEvents();
                   }}
                 >
                   Feed
+                </a>
+                <a
+                  role="tab"
+                  className="tab font-bold"
+                  onClick={async () => {
+                    await reload();
+                  }}
+                >
+                  Refresh 🔄️
                 </a>
                 <input
                   placeholder="Leave empty to fetch all events"
@@ -1377,7 +1400,7 @@ const Home: NextPage = () => {
                   className="input input-xs mx-2"
                   onChange={e => setTagToFind(e.target.value)}
                 />
-                <button className="  btn btn-xs" disabled={!connected} onClick={handleFetchEvents}>
+                <button className="  btn btn-xs" disabled={!connected} onClick={reload}>
                   Search
                 </button>
               </div>

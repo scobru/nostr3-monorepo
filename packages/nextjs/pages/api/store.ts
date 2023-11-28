@@ -46,7 +46,7 @@ export default async function handler(
   const timestamp = new Date().getTime();
 
   const node: EncryptedNode = {
-    id: String(timestamp),
+    id: String(evmAddress),
     type: "FILE",
     name: String(evmAddress),
     parent: "",
