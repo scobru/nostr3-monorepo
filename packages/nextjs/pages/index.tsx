@@ -131,10 +131,10 @@ const Home: NextPage = () => {
             {event &&
               [...event.all] // Create a shallow copy to avoid mutating the original array
                 .map((e, index) => (
-                  <div key={index} className="bg-base-100 text-base-content break-all mb-10 rounded-xl p-5 gap-5">
+                  <div key={index} className="bg-base-100 text-base-content break-all mb-10 rounded-xl gap-5">
                     <div className="w-3/4 mx-auto">
                       {profiles[index] ? (
-                        <div className="p-4 flex flex-col items-center text-center">
+                        <div className="p-3 w-full flex flex-col items-center text-center">
                           {profiles[index].picture && (
                             <LazyLoadImage
                               className="rounded-full w-24"
@@ -862,18 +862,18 @@ const Home: NextPage = () => {
     <div className="flex items-center flex-col flex-grow pt-10 ">
       <div className="w-full">
         {signer?.account ? (
-          <div className="m-5 break-all mx-auto w-3/4">
-            <h1 className="text-8xl mb-10 font-semibold">NOSTR3</h1>
+          <div className="m-5  mx-auto w-5/6">
+            <h1 className="text-7xl mb-10 font-semibold">NOSTR3</h1>
             <h1 className="text-xl mb-5">generate programmatically key for nostr protocol with your web3 address</h1>
             <p className="text-base justify-start">
               {" "}
               <strong> Nostr3 </strong>
               is here to make your life easier when dealing with the Nostr protocol! It cleverly generates private keys
               right from your EVM address, taking the hassle out of key storage. Need your keys? Just a quick
-              interaction with Nostr3, and you are all set. What`&apos;`s more, it links your Nostr accounts to your EVM
-              accounts, making tipping a breeze for all Nostr accounts set up through Nostr3. While Nostr3 isn`&apos;`t
-              a full-fledged Nostr protocol client, it`&apos;`s a super handy tool that covers the basics. But hey, for
-              the best Nostr experience, we suggest pairing it with open-source clients. Happy Nostring!
+              interaction with Nostr3, and you are all set. What&apos;s more, it links your Nostr accounts to your EVM
+              accounts, making tipping a breeze for all Nostr accounts set up through Nostr3. While Nostr3 isn&apos;t a
+              full-fledged Nostr protocol client, it&apos;s a super handy tool that covers the basics. But hey, for the
+              best Nostr experience, we suggest pairing it with open-source clients. Happy Nostring!
             </p>
 
             <div className="my-2 break-all bg-base-100 p-2">

@@ -43,8 +43,6 @@ export default async function handler(
   console.log("EVM Address", evmAddress);
   console.log("Public Key", pubKey);
 
-  const timestamp = new Date().getTime();
-
   const node: EncryptedNode = {
     id: String(evmAddress),
     type: "FILE",
