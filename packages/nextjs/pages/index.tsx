@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import MecenateHelper from "@scobru/crypto-ipfs";
 import { Nostr3 } from "@scobru/nostr3/dist/nostr3";
 import type { NextPage } from "next";
 import { finishEvent, getPublicKey, relayInit } from "nostr-tools";
+import { nip19 } from "nostr-tools";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/blur.css";
 import { createWalletClient, http, parseEther, toBytes } from "viem";
@@ -99,6 +101,8 @@ const Home: NextPage = () => {
   const [amountToTip, setAmountToTip] = useState({});
   const [nostrKeys, setNostrKeys] = useState<any>({});
   const [pubKeyEthAddressList, setPubKeyEthAddressList] = useState<any[]>([]);
+  const [isExtension, setIsExtension] = useState(false);
+  const [evmAddress, setEvmAddress] = useState("");
 
   const openTipModal = () => {
     const tip_modal = document.getElementById("tip_modal") as HTMLDialogElement;
@@ -132,7 +136,7 @@ const Home: NextPage = () => {
             {event &&
               [...event.all] // Create a shallow copy to avoid mutating the original array
                 .map((e, index) => (
-                  <div key={index} className="bg-base-100 text-base-content break-all mb-10 rounded-xl gap-5">
+                  <div key={index} className="bg-base-100 p-5 text-base-content break-all mb-10 rounded-xl gap-5">
                     <div className="w-3/4 mx-auto">
                       {profiles[index] ? (
                         <div className="p-3 w-full flex flex-col items-center text-center">
@@ -499,18 +503,22 @@ const Home: NextPage = () => {
     return eventFilterd[0].pubkey;
   };
 
+  interface Event {
+    content: string;
+    pubkey: string;
+  }
+
   const handleListAllPubkeyAndEthAddress = async () => {
     const events = await relay.list([{ kinds: [30078] }]);
 
     if (events.length === 0) return null;
 
-    let eventResult = [];
+    const eventResult: { pubkey: string; evmAddress: string }[] = [];
     // create a paggin with event.content and event.pubkey
-    const eventFilterd = events.map((event: []) => {
+    events.map((event: Event) => {
       // only event.content start with 0x
       if (event.content.slice(0, 2) !== "0x") return null;
-      eventResult.push({ pubkey: event.pubkey, evmAddress: event.content });
-      return eventResult;
+      eventResult.push({ pubkey: nip19.npubEncode(event.pubkey), evmAddress: event.content });
     });
 
     console.log("eventFilterd: ", eventResult);
@@ -569,7 +577,26 @@ const Home: NextPage = () => {
     setNewMessage(""); // Reset the input field after sending
 
     // Retrieve events from the relay
-    const events = await relay.list([{ kinds: [1] }]);
+    const events = await relay.list([{ kinds: [30078] }]);
+
+    // Set state with the latest event and all retrieved events
+    setEvent({ created: signedEvent, all: events });
+  };
+
+  const handleRegisterEVMExtension = async () => {
+    const messageEvent: any = {
+      kind: 30078,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [["d", "nostr3"]],
+      content: evmAddress,
+      pubkey: publicKey,
+    };
+    const signedEvent = await window.nostr.signEvent(messageEvent);
+    await relay.publish(signedEvent);
+    setNewMessage(""); // Reset the input field after sending
+
+    // Retrieve events from the relay
+    const events = await relay.list([{ kinds: [30078] }]);
 
     // Set state with the latest event and all retrieved events
     setEvent({ created: signedEvent, all: events });
@@ -578,6 +605,12 @@ const Home: NextPage = () => {
   //////////////////////////////////////////////////////////////////////////////////////
   // Events ////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////
+
+  const handleConnectExtension = async () => {
+    const _pubKey = await window?.nostr?.getPublicKey();
+    setIsExtension(true);
+    setPublicKey(_pubKey);
+  };
 
   const reload = async () => {
     await handleFetchEvents();
@@ -640,12 +673,12 @@ const Home: NextPage = () => {
         try {
           const profileData = await loadProfile(publicKey);
           setProfileDetails(profileData);
+          await handleListAllPubkeyAndEthAddress();
         } catch (error) {
           notification.error("Error loading profile");
         }
       };
       run();
-      handleListAllPubkeyAndEthAddress();
     }
   }, [connected, nostrKeys]);
 
@@ -698,19 +731,33 @@ const Home: NextPage = () => {
   };
 
   const handleSignIn = async () => {
-    await handleConnectRelay();
-    await fetch("/api/store", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        evmAddress: await wallet?.account?.address,
-        pubKey: publicKey,
-      }),
-    });
+    if (!isExtension) {
+      await fetch("/api/store", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          evmAddress: await wallet?.account?.address,
+          pubKey: publicKey,
+        }),
+      });
 
-    await handleRegisterEVM(nostrKeys);
+      await handleRegisterEVM(nostrKeys);
+    } else {
+      await handleRegisterEVMExtension();
+
+      await fetch("/api/store", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          evmAddress: evmAddress,
+          pubKey: publicKey,
+        }),
+      });
+    }
   };
 
   const handleGenerateKeys = async () => {
@@ -763,6 +810,13 @@ const Home: NextPage = () => {
         <button className="btn text-left mb-5" onClick={() => setShowKeys(!showKeys)}>
           {showKeys ? "Hide Keys" : "Show Keys"}
         </button>
+        <input
+          type="text"
+          className="input input-primary my-4"
+          id="EvmAddress"
+          placeholder="Set Evm address"
+          onChange={e => setEvmAddress(e.target.value)}
+        />
         {showKeys && (
           <div className="w-fit bg-base-100 text-base-content rounded-lg p-5 text-left">
             <ul className="space-y-2">
@@ -926,16 +980,20 @@ const Home: NextPage = () => {
               </pre>
             </div>
             <div className="bg-base-100  text-base-content rounded-md mb-4 p-10">
-              <h2 className="text-2xl mb-5">Updates</h2>
+              <h2 className="text-2xl mb-5">🎉 Updates</h2>
               <ul className="list-disc">
-                <li className="text-lg font-medium">
-                  <span className="font-bold text-primary">BLA BLA</span> : bla bla bla
+                <li className="text-lg font-medium bg-success text-success-content">
+                  <span className="font-bold ">List Address Box</span> : Added a box to list all pubkey associated with
+                  the corrispodent evm address.
                 </li>
               </ul>
             </div>
             <nav className="flex flex-wrap p-4">
               <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={handleGenerateKeys}>
                 Generate
+              </label>
+              <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={handleConnectExtension}>
+                Link
               </label>
               <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={handleSignIn}>
                 Sign in
@@ -1375,8 +1433,22 @@ const Home: NextPage = () => {
                   <h2 className="text-2xl mb-5">🎉 PubKey and EVM Address</h2>
                   <ul className="list-disc">
                     {pubKeyEthAddressList.map((item: any) => (
-                      <li className="text-lg font-medium">
-                        <span className="font-bold text-primary">{item.pubkey}</span> : {item.evmAddress}
+                      <li key={item} className="text-lg font-medium">
+                        <span className="font-bold text-primary">
+                          <Link href={`https://njump.me/${item.pubkey}`} target="_blank">
+                            {" "}
+                            {item.pubkey}
+                          </Link>
+                        </span>{" "}
+                        :{" "}
+                        <button
+                          className="btn btn-ghost mr-2 md:mr-4 lg:mr-6"
+                          onClick={() => {
+                            openTipModal(), setPubKeyReceiver(item.pubkey);
+                          }}
+                        >
+                          {item.evmAddress}{" "}
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -1449,7 +1521,7 @@ const Home: NextPage = () => {
                   Search
                 </button>
               </div>
-              <TabContent />
+              {/*  <TabContent /> */}
               <h3 className=" gap-2 flex flex-row text-lg mb-4">
                 <span> Donate to support the project to</span>
                 <Address address={"0xb542E27732a390f509fD1FF6844a8386fe320f7f"} /> 🙏
