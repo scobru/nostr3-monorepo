@@ -486,23 +486,6 @@ const Home: NextPage = () => {
 
     return events[0].content;
   };
-
-  const handleSearchFromPubkeytoRelay = async (evmAddress: string) => {
-    const events = await relay.list([{ kinds: [30078] }]);
-
-    if (events.length === 0) return null;
-
-    // filter by content = evmAddress
-    const eventFilterd = events.filter((event: any) => {
-      return event.content === evmAddress;
-    });
-
-    console.log("eventFilterd: ", eventFilterd);
-
-    setSearchPublicKey({ pubkey: eventFilterd[0].pubkey, profile: "" });
-    return eventFilterd[0].pubkey;
-  };
-
   interface Event {
     content: string;
     pubkey: string;
@@ -510,15 +493,14 @@ const Home: NextPage = () => {
 
   const handleListAllPubkeyAndEthAddress = async () => {
     const events = await relay.list([{ kinds: [30078] }]);
+    //if (events.length === 0) return null;
 
-    if (events.length === 0) return null;
-
-    const eventResult: { pubkey: string; evmAddress: string }[] = [];
+    const eventResult: { pubkey: string; npub: string; evmAddress: string }[] = [];
     // create a paggin with event.content and event.pubkey
     events.map((event: Event) => {
       // only event.content start with 0x
       if (event.content.slice(0, 2) !== "0x") return null;
-      eventResult.push({ pubkey: nip19.npubEncode(event.pubkey), evmAddress: event.content });
+      eventResult.push({ pubkey: event.pubkey, npub: nip19.npubEncode(event.pubkey), evmAddress: event.content });
     });
 
     console.log("eventFilterd: ", eventResult);
@@ -610,6 +592,12 @@ const Home: NextPage = () => {
     const _pubKey = await window?.nostr?.getPublicKey();
     setIsExtension(true);
     setPublicKey(_pubKey);
+    setNostrPublicKey(nip19.npubEncode(_pubKey));
+    setNProfile(nip19.nprofileEncode({ pubkey: _pubKey }));
+    setPrivateKey("");
+    setNostrPrivateKey("");
+    setEvmAddress("");
+    setWallet("");
   };
 
   const reload = async () => {
@@ -785,6 +773,7 @@ const Home: NextPage = () => {
     });
 
     setWallet(newWallet);
+    setEvmAddress(await newWallet?.account?.address);
     console.log(nostrKeys);
 
     try {
@@ -815,10 +804,11 @@ const Home: NextPage = () => {
           className="input input-primary my-4"
           id="EvmAddress"
           placeholder="Set Evm address"
+          value={evmAddress}
           onChange={e => setEvmAddress(e.target.value)}
         />
         {showKeys && (
-          <div className="w-fit bg-base-100 text-base-content rounded-lg p-5 text-left">
+          <div className="w-fit bg-base-100 text-base-content rounded-lg p-5 text-left break-all mt-4">
             <ul className="space-y-2">
               {publicKey && (
                 <li className="font-bold border-b border-primary-content p-2">
@@ -853,6 +843,9 @@ const Home: NextPage = () => {
             </ul>
           </div>
         )}
+        <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6 mt-5" onClick={handleSignIn}>
+          Sign in
+        </label>
       </div>
     );
   };
@@ -979,25 +972,33 @@ const Home: NextPage = () => {
                 <br />
               </pre>
             </div>
-            <div className="bg-base-100  text-base-content rounded-md mb-4 p-10">
-              <h2 className="text-2xl mb-5">🎉 Updates</h2>
+            <div className="bg-success  text-success-content rounded-md mb-4 p-10">
+              <h2 className="text-2xl mb-5 ">🎉 Updates</h2>
               <ul className="list-disc">
-                <li className="text-lg font-medium bg-success text-success-content">
+                <li className="text-lg font-medium ">
+                  <span className="font-bold ">Nos2x extension</span> : Login with nos2x extension
+                </li>
+                <li className="text-lg font-medium ">
                   <span className="font-bold ">List Address Box</span> : Added a box to list all pubkey associated with
                   the corrispodent evm address.
                 </li>
               </ul>
             </div>
-            <nav className="flex flex-wrap p-4">
+            <nav className="flex flex-wrap p-4 text-center mx-auto w-auto">
               <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={handleGenerateKeys}>
-                Generate
+                Generate Keypair
               </label>
               <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={handleConnectExtension}>
-                Link
+                Login With extension
               </label>
-              <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={handleSignIn}>
-                Sign in
-              </label>
+            </nav>
+            {connected ? (
+              <p className="mb-4 text-bold text-xl text-success">📡 Connected</p>
+            ) : (
+              <p className="mb-4 text-bold text-xl text-success">Not Connected</p>
+            )}
+            <ProfileDetailsBox />
+            <nav className="flex flex-wrap p-4">
               <button
                 className="btn btn-ghost mr-2 md:mr-4 lg:mr-6"
                 onClick={() => {
@@ -1350,94 +1351,18 @@ const Home: NextPage = () => {
                   </div>
                 </div>
               </dialog>
-              <button
-                className="btn btn-ghost mr-2 md:mr-4 lg:mr-6"
-                onClick={() => {
-                  const search_evm_modal = document.getElementById("search_evm_modal") as HTMLDialogElement;
-                  if (search_evm_modal) {
-                    search_evm_modal.showModal();
-                  }
-                }}
-              >
-                SEARCH
-              </button>
-              <dialog id="search_evm_modal" className="modal">
-                <div className="modal-box">
-                  <h1 className="text-3xl font-thin mt-10">SEARCH ADDRESS</h1>
-                  <div className="flex flex-col mt-5">
-                    <input
-                      placeholder="EVM Address joined to nostr3"
-                      type="text"
-                      className="input input-primary my-5"
-                      onChange={e => setAccountEvmToSearch(e.target.value)}
-                    />
-
-                    <button
-                      className="  btn btn-primary my-5"
-                      disabled={!connected}
-                      onClick={() => {
-                        handleSearchFromPubkeytoRelay(accountEvmToSearch);
-                      }}
-                    >
-                      Search Nostr PubKey
-                    </button>
-                    <br />
-                    {searchPublicKey.pubkey && (
-                      <div>
-                        <div className="text-sm ">{searchPublicKey.pubkey}</div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col mt-5">
-                    <input
-                      placeholder="Nostr Public Key"
-                      type="text"
-                      className="input input-primary my-5"
-                      onChange={e => setPubKeyReceiver(e.target.value)}
-                    />
-
-                    <button
-                      className="  btn btn-primary my-5"
-                      disabled={!connected}
-                      onClick={() => {
-                        handleSearchFromEVMtoRelay(pubKeyReceiver);
-                      }}
-                    >
-                      Search Nostr PubKey
-                    </button>
-                    <br />
-                    {evmAddressReceiver && (
-                      <div>
-                        <div className="text-sm ">{evmAddressReceiver}</div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="modal-action">
-                    <form method="dialog">
-                      {/* if there is a button in form, it will close the modal */}
-                      <button className="btn">Close</button>
-                    </form>
-                  </div>
-                </div>
-              </dialog>
             </nav>
-            {connected ? (
-              <p className="mb-4 text-bold text-xl text-success">📡 Connected</p>
-            ) : (
-              <p className="mb-4 text-bold text-xl text-success">Not Connected</p>
-            )}
-            <ProfileDetailsBox />
             <div>
               {pubKeyEthAddressList && (
-                <div className="bg-base-100  text-base-content rounded-md mb-4 p-10">
+                <div className="bg-base-100  text-base-content rounded-md mb-4 p-10 break-all">
                   <h2 className="text-2xl mb-5">🎉 PubKey and EVM Address</h2>
                   <ul className="list-disc">
                     {pubKeyEthAddressList.map((item: any) => (
                       <li key={item} className="text-lg font-medium">
                         <span className="font-bold text-primary">
-                          <Link href={`https://njump.me/${item.pubkey}`} target="_blank">
+                          <Link href={`https://njump.me/${item.npub}`} target="_blank">
                             {" "}
-                            {item.pubkey}
+                            {item.npub}
                           </Link>
                         </span>{" "}
                         :{" "}
@@ -1455,7 +1380,6 @@ const Home: NextPage = () => {
                 </div>
               )}
             </div>
-
             {event && event.created && (
               <div className="bg-success p-5 text-black rounded-md mb-4">
                 <h2 className="text-2xl mb-2">🎉 Posted!</h2>
@@ -1521,7 +1445,7 @@ const Home: NextPage = () => {
                   Search
                 </button>
               </div>
-              {/*  <TabContent /> */}
+              <TabContent />
               <h3 className=" gap-2 flex flex-row text-lg mb-4">
                 <span> Donate to support the project to</span>
                 <Address address={"0xb542E27732a390f509fD1FF6844a8386fe320f7f"} /> 🙏
