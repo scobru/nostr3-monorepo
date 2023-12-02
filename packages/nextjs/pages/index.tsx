@@ -13,9 +13,16 @@ import { keccak256 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { optimism } from "viem/chains";
 import { useWalletClient } from "wagmi";
-import { Address } from "~~/components/scaffold-eth";
-import { BlockieAvatar } from "~~/components/scaffold-eth";
 import { notification } from "~~/utils/scaffold-eth";
+
+declare global {
+  interface Window {
+    nostr: {
+      getPublicKey: () => Promise<any>;
+      signEvent: (event: any) => Promise<any>;
+    };
+  }
+}
 
 const Home: NextPage = () => {
   const { data: signer } = useWalletClient();
@@ -24,9 +31,8 @@ const Home: NextPage = () => {
   const [publicKey, setPublicKey] = useState("");
   const [nostrPublicKey, setNostrPublicKey] = useState("");
   const [event, setEvent] = useState<any>(null);
-  const [relayURL, setRelayURL] = useState("wss://nostr-bouncer.scobrudot.dev"); // Replace with a real relay URL
+  const [relayURL, setRelayURL] = useState("wss://relay.primal.net"); // Replace with a real relay URL
   const [relay, setRelay] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState("pastEvents");
   const [showKeys, setShowKeys] = useState(false);
   // const [relayList, setRelayList] = useState([]);
   const [wallet, setWallet] = useState<any>(null);
@@ -42,34 +48,6 @@ const Home: NextPage = () => {
     lud16: "",
     lud06: "",
   });
-  const [profiles, setProfiles] = useState([
-    {
-      name: "",
-      display_name: "",
-      picture: "",
-      banner: "",
-      nip05: "",
-      website: "",
-      about: "",
-      image: "",
-      lud16: "",
-      lud06: "",
-    },
-  ]);
-  const [profilesEncrypted, setProfilesEncrypted] = useState([
-    {
-      name: "",
-      display_name: "",
-      picture: "",
-      banner: "",
-      nip05: "",
-      website: "",
-      about: "",
-      image: "",
-      lud16: "",
-      lud06: "",
-    },
-  ]);
   const [profileDetails, setProfileDetails] = useState({
     name: "",
     display_name: "",
@@ -83,21 +61,19 @@ const Home: NextPage = () => {
     lud06: "",
   });
   const [connected, setConnected] = useState(false);
-  const [tagToFind, setTagToFind] = useState(""); // Replace with a real tag to find [bitcoin
   const [mentionsPublicKeys, setMentionsPublicKeys] = useState<string[]>([]);
   const [mentionsEvents, setMentionsEvents] = useState<string[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [pastEvents, setPastEvents] = useState<any[]>([]);
-  const [encryptedEvents, setEncryptedEvents] = useState<any[]>([]);
-  const [accountEvmToSearch, setAccountEvmToSearch] = useState("");
   const [nProfile, setNProfile] = useState("");
-  const [searchPublicKey, setSearchPublicKey] = useState({
-    pubkey: "",
-    profile: "",
-  });
+  //const [accountEvmToSearch, setAccountEvmToSearch] = useState("");
+  // const [searchPublicKey, setSearchPublicKey] = useState({
+  //   pubkey: "",
+  //   profile: "",
+  // });
   const [nostr3, setNostr3] = useState<any>(null);
   const [pubKeyReceiver, setPubKeyReceiver] = useState("");
-  const [evmAddressReceiver, setEvmAddressReceiver] = useState("");
+  const [, setEvmAddressReceiver] = useState("");
   const [amountToTip, setAmountToTip] = useState({});
   const [nostrKeys, setNostrKeys] = useState<any>({});
   const [pubKeyEthAddressList, setPubKeyEthAddressList] = useState<any[]>([]);
@@ -111,145 +87,6 @@ const Home: NextPage = () => {
     }
   };
 
-  const TabContent = () => {
-    switch (activeTab) {
-      case "pastEvents":
-        return (
-          <div>
-            {pastEvents && (
-              <div className="overflow-auto">
-                {pastEvents
-                  .sort((a, b) => b.created_at - a.created_at)
-                  .map((e, index) => (
-                    <div key={index} className="mb-2 bg-base-100 shadow-md rounded-lg px-2 py-auto">
-                      <p className="font-light text-sm text-gray-400">id: {e.id}</p>
-                      <p className="font-semibold ">{e.content}</p>{" "}
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
-        );
-      case "fetchEvents":
-        return (
-          <div className="mt-2">
-            {event &&
-              [...event.all] // Create a shallow copy to avoid mutating the original array
-                .map((e, index) => (
-                  <div key={index} className="bg-base-100 p-5 text-base-content break-all mb-10 rounded-xl gap-5">
-                    <div className="w-3/4 mx-auto">
-                      {profiles[index] ? (
-                        <div className="p-3 w-full flex flex-col items-center text-center">
-                          {profiles[index].picture && (
-                            <LazyLoadImage
-                              className="rounded-full w-24"
-                              src={profiles[index].picture}
-                              effect="blur"
-                              placeholderSrc="path_to_placeholder_image.jpg"
-                            />
-                          )}{" "}
-                          <p className="font-bold text-lg mb-2">{profiles[index].display_name}</p>
-                        </div>
-                      ) : (
-                        <div className="p-4 flex flex-col items-center text-center">
-                          {" "}
-                          <BlockieAvatar address={e.pubkey} size={100} />
-                        </div>
-                      )}
-                      <p className="font-medium text-base">{e.content}</p>
-                      {extractAndEmitImages(e.content).map(
-                        (
-                          imageElement:
-                            | string
-                            | number
-                            | boolean
-                            | React.ReactElement<any, string | React.JSXElementConstructor<any>>
-                            | React.ReactFragment
-                            | React.ReactPortal
-                            | null
-                            | undefined,
-                          imgIndex: React.Key | null | undefined,
-                        ) => (
-                          <div key={imgIndex}>{imageElement}</div>
-                        ),
-                      )}
-                      <p className="font-bold text-sm">{e.pubkey}</p>
-                      <p className="font-semibold text-xs">{new Date(e.created_at * 1000).toLocaleString()}</p>{" "}
-                      <button
-                        className="btn btn-ghost mr-2 md:mr-4 lg:mr-6"
-                        onClick={() => {
-                          openTipModal(), setPubKeyReceiver(e.pubkey);
-                        }}
-                      >
-                        Tip
-                      </button>
-                    </div>
-                  </div>
-                ))}
-          </div>
-        );
-      case "encryptedEvents":
-        return (
-          <div>
-            {encryptedEvents &&
-              encryptedEvents
-                .filter((e: any) => e.pubkey !== publicKey)
-                .map((e: any, index: number) => (
-                  <div key={index} className="border-secondary border-2 break-all mb-4 rounded-lg p-5">
-                    <div className="w-3/4 mx-auto">
-                      {profilesEncrypted[index] && (
-                        <div className="p-4 flex flex-col items-center text-center">
-                          <LazyLoadImage
-                            className="rounded-full w-24"
-                            src={profilesEncrypted[index].picture}
-                            effect="blur"
-                            placeholderSrc="path_to_placeholder_image.jpg"
-                          />
-
-                          <p className="font-bold text-lg mb-2">{profilesEncrypted[index].display_name}</p>
-                        </div>
-                      )}
-                      <p className="font-medium text-base">{e.content}</p>
-                      <p className="font-semibold text-xs">{new Date(e.created_at * 1000).toLocaleString()}</p>
-                    </div>
-                  </div>
-                ))}
-          </div>
-        );
-      case "encryptedNotesEvents":
-        return (
-          <div>
-            {encryptedEvents &&
-              encryptedEvents
-                .filter((e: any) => e.pubkey === publicKey)
-                .map((e: any, index: number) => (
-                  <div key={index} className="border-secondary border-2 break-all mb-4 rounded-lg p-5">
-                    <div className="w-3/4 mx-auto">
-                      {profilesEncrypted[index] && (
-                        <div className="p-4 flex flex-col items-center text-center">
-                          <LazyLoadImage
-                            className="rounded-full h-24 w-24 object-cover mb-4"
-                            src={profilesEncrypted[index].picture}
-                            alt="Profile"
-                          />
-                          <p className="font-bold text-lg mb-2">{profilesEncrypted[index].display_name}</p>
-                          <button onClick={() => deleteEvent(e.id)} className="btn btn-ghost ">
-                            delete
-                          </button>
-                        </div>
-                      )}
-                      <p className="font-medium text-base">{e.content}</p>
-                      <p className="font-semibold text-xs">{new Date(e.created_at * 1000).toLocaleString()}</p>
-                    </div>
-                  </div>
-                ))}
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
   //////////////////////////////////////////////////////////////////////////////////////
   // load Profile //////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////
@@ -290,11 +127,10 @@ const Home: NextPage = () => {
   //////////////////////////////////////////////////////////////////////////////////////
 
   const handleTip = async (receiver: any) => {
-    const tx = await signer?.sendTransaction({
+    await signer?.sendTransaction({
       to: receiver,
       value: parseEther(String(amountToTip)),
     });
-    console.log("tx: ", tx);
     notification.success("Tip sent");
     const tip_modal = document.getElementById("tip_modal") as HTMLDialogElement;
     if (tip_modal) {
@@ -308,7 +144,6 @@ const Home: NextPage = () => {
 
   const handleDirectMessage = async () => {
     const ciphertext = await nostr3.encryptDM(newMessage, pubKeyReceiver);
-    console.log("ciphertext: ", ciphertext);
 
     const messageEvent = {
       kind: 4,
@@ -317,8 +152,6 @@ const Home: NextPage = () => {
       content: ciphertext,
       pubkey: publicKey,
     };
-
-    console.log("messageEvent: ", messageEvent);
 
     const signedEvent = finishEvent(messageEvent, privateKey);
     await relay.publish(signedEvent);
@@ -334,11 +167,6 @@ const Home: NextPage = () => {
     // relay.close(); (if needed)
   };
 
-  const decryptDirectMessage = async (content: any, pubkey: any) => {
-    const decrypted = await nostr3.decryptDM(content, pubkey);
-    return decrypted;
-  };
-
   const handleSendMessage = async () => {
     const tags = extractHashtags(newMessage);
     const messageEvent: any = {
@@ -350,7 +178,6 @@ const Home: NextPage = () => {
     };
 
     // Hashtags
-
     messageEvent.tags.push(extractHashtags(newMessage));
 
     // PublicKey
@@ -376,38 +203,6 @@ const Home: NextPage = () => {
     // relay.close(); (if needed)
   };
 
-  const deleteEvent = async (event_id: string) => {
-    try {
-      // if (!nostrExtensionLoaded()) {
-      //   throw "Nostr extension not loaded or available"
-      // }
-
-      const msg = {
-        id: "", // Event Id
-        kind: 5, // NIP-X - Deletion
-        content: "", // Deletion Reason
-        tags: [] as Array<[string, string]>,
-        created_at: 0,
-        pubkey: "",
-      };
-
-      msg.tags.push(["e", event_id]);
-
-      console.log(msg);
-
-      // set msg fields
-      msg.created_at = Math.floor(new Date().getTime() / 1000);
-      msg.pubkey = publicKey;
-
-      // Sign event
-      const signedEvent = finishEvent(msg, privateKey);
-      await relay.publish(signedEvent);
-    } catch (e) {
-      console.log("Failed to sign message with browser extension", e);
-      return false;
-    }
-  };
-
   const handleAddMentionEvent = (eventId: string) => {
     setMentionsEvents([...mentionsEvents, eventId]);
   };
@@ -420,9 +215,9 @@ const Home: NextPage = () => {
   // Search ////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////
 
+  // IPFS
   // const handleSearchFromEVMIPFS = async accountEvm => {
   //   const url = `/api/store?evmAddress=${accountEvm}`;
-
   //   // Esegui la richiesta fetch
   //   const verifiedResult = await fetch(url, {
   //     method: "GET",
@@ -478,32 +273,81 @@ const Home: NextPage = () => {
   //   }
   // };
 
+  /* const handleGetList = async () => {
+    try {
+      const url = `/api/getAll`;
+
+      const verifiedResult = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!verifiedResult.ok) {
+        throw new Error(`HTTP error! Status: ${verifiedResult.status}`);
+      } else if (verifiedResult.status == 200) {
+        const resultJson = await verifiedResult.json();
+
+        if (!resultJson.data) {
+          throw new Error("No data found in the response");
+        }
+
+        // Logging for debugging purposes, consider removing in production
+        console.log("Parsed Result: ", resultJson.data);
+
+        // create a json with id resultData.id and content JSON.parse(resultData.contet).pubkey
+
+        const result = await resultJson.data.map(async (resultData: any) => {
+          if (resultData.content.slice(0, 2) !== "") return null;
+          return {
+            evmAddress: resultData.id,
+            pubkey: JSON.parse(resultData.content).pubKey,
+            npub: await nip19.npubEncode(JSON.parse(resultData.content)),
+          };
+        });
+        console.log(result);
+        setPubKeyEthAddressList(result);
+
+        return result;
+      }
+    } catch (error) {
+      console.error("Error fetching public key:", error);
+      // Ensure notification is a valid function/object in your context
+      notification.error(error);
+      return null; // or appropriate fallback value
+    }
+  }; */
+
   const handleSearchFromEVMtoRelay = async (pubKey: string) => {
+    await handleConnectRelay();
     const events = await relay.list([{ kinds: [30078], authors: [pubKey] }]);
-    console.log("events: ", events);
     if (events.length === 0) return null;
     setEvmAddressReceiver(events[0].content);
-
     return events[0].content;
   };
   interface Event {
     content: string;
     pubkey: string;
+    kind: number;
   }
 
   const handleListAllPubkeyAndEthAddress = async () => {
-    const events = await relay.list([{ kinds: [30078] }]);
+    const _events = await relay.list([{ kinds: [30078] }]);
+    // sort event by date recent
+    const _eventsSort = _events.sort(
+      (a: { created_at: number }, b: { created_at: number }) => b.created_at - a.created_at,
+    );
     //if (events.length === 0) return null;
-
     const eventResult: { pubkey: string; npub: string; evmAddress: string }[] = [];
     // create a paggin with event.content and event.pubkey
-    events.map((event: Event) => {
+    _eventsSort.map((event: Event) => {
       // only event.content start with 0x
+      if (event.kind != 30078) return null;
       if (event.content.slice(0, 2) !== "0x") return null;
       eventResult.push({ pubkey: event.pubkey, npub: nip19.npubEncode(event.pubkey), evmAddress: event.content });
     });
 
-    console.log("eventFilterd: ", eventResult);
     setPubKeyEthAddressList(eventResult);
     return eventResult;
   };
@@ -589,7 +433,7 @@ const Home: NextPage = () => {
   //////////////////////////////////////////////////////////////////////////////////////
 
   const handleConnectExtension = async () => {
-    const _pubKey = await window?.nostr?.getPublicKey();
+    const _pubKey = await window.nostr.getPublicKey();
     setIsExtension(true);
     setPublicKey(_pubKey);
     setNostrPublicKey(nip19.npubEncode(_pubKey));
@@ -601,20 +445,22 @@ const Home: NextPage = () => {
   };
 
   const reload = async () => {
+    const id = notification.loading("Reload");
     await handleFetchEvents();
-    await handleFetchMyEvents();
-    await handleEncryptedEvents();
     await handleListAllPubkeyAndEthAddress();
+    notification.remove(id);
+    notification.success("Fetch Complete");
+    //await handleGetList();
   };
 
   const handleFetchEvents = async () => {
-    const _events = await relay.list([{ kinds: [1], limit: 50 }]);
+    const _events = await relay.list([{ kinds: [30078] }]);
     // sort event by date recent
     const _eventsSort = _events.sort(
       (a: { created_at: number }, b: { created_at: number }) => b.created_at - a.created_at,
     );
 
-    if (!tagToFind) {
+    /* if (!tagToFind) {
       setEvent({ all: _eventsSort });
       const _loadedProfiles = await Promise.all(_eventsSort.map((e: { pubkey: any }) => loadProfile(e.pubkey)));
       setProfiles(_loadedProfiles);
@@ -624,31 +470,9 @@ const Home: NextPage = () => {
     // filter events when hashtag is "bitcoin"
     const filterEvents = _eventsSort.filter((event: any) => {
       return event.tags.some((tag: any) => tag.length === 2 && tag[0] === "t" && tag[1] === tagToFind);
-    });
-    setEvent({ all: filterEvents });
-    const _loadedProfiles = await Promise.all(filterEvents.map((e: { pubkey: any }) => loadProfile(e.pubkey)));
-    setProfiles(_loadedProfiles);
-  };
+    }); */
 
-  const handleFetchMyEvents = async () => {
-    const events = await relay.list([{ kinds: [1], authors: [publicKey] }]);
-    setPastEvents(events);
-  };
-
-  const handleEncryptedEvents = async () => {
-    let events = await relay.list([{ kinds: [4] }]);
-    // check inside the tag [p, publicKey]
-    events = events.filter((event: any) => {
-      return event.tags.some((tag: any) => tag.length === 2 && tag[0] === "p" && tag[1] === publicKey);
-    });
-    // decrypt the event.content and subsistute the event.content with the decrypted message
-    events.forEach(async (event: any) => {
-      event.content = await decryptDirectMessage(event.content, event.pubkey);
-    });
-    setEncryptedEvents(events);
-    const _loadedProfiles = await Promise.all(events.map((e: { pubkey: any }) => loadProfile(e.pubkey)));
-    Promise.all(_loadedProfiles);
-    if (_loadedProfiles) setProfilesEncrypted(_loadedProfiles as any[]);
+    setEvent(_eventsSort);
   };
 
   //////////////////////////////////////////////////////////////////////////////////////
@@ -661,7 +485,6 @@ const Home: NextPage = () => {
         try {
           const profileData = await loadProfile(publicKey);
           setProfileDetails(profileData);
-          await handleListAllPubkeyAndEthAddress();
         } catch (error) {
           notification.error("Error loading profile");
         }
@@ -676,7 +499,6 @@ const Home: NextPage = () => {
     } else if (relay && relay.status == 1) {
       setConnected(true);
     }
-    console.log("Relay", relay);
   }, [relay]);
 
   useEffect(() => {
@@ -701,13 +523,6 @@ const Home: NextPage = () => {
     return ["t", ...hashtags];
   };
 
-  const extractAndEmitImages = (text: string) => {
-    const pattern = /https?:\/\/\S+\.jpg/g;
-    const urls = text.match(pattern);
-    // eslint-disable-next-line react/jsx-key
-    return urls ? urls.map((url: string | undefined) => <LazyLoadImage src={url} alt="Image" className="my-2" />) : [];
-  };
-
   const generateKeyPairFromSeed = async () => {
     const baseMessage = "nostr3";
     const formattedMessage = toHex(toBytes(baseMessage));
@@ -719,8 +534,9 @@ const Home: NextPage = () => {
   };
 
   const handleSignIn = async () => {
+    const id = notification.loading("Process");
     if (!isExtension) {
-      await fetch("/api/store", {
+      /*  await fetch("/api/store", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -729,13 +545,13 @@ const Home: NextPage = () => {
           evmAddress: await wallet?.account?.address,
           pubKey: publicKey,
         }),
-      });
+      }); */
 
       await handleRegisterEVM(nostrKeys);
     } else {
       await handleRegisterEVMExtension();
 
-      await fetch("/api/store", {
+      /* await fetch("/api/store", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -744,8 +560,10 @@ const Home: NextPage = () => {
           evmAddress: evmAddress,
           pubKey: publicKey,
         }),
-      });
+      }); */
     }
+    notification.remove(id);
+    notification.success("Send");
   };
 
   const handleGenerateKeys = async () => {
@@ -774,8 +592,7 @@ const Home: NextPage = () => {
 
     setWallet(newWallet);
     setEvmAddress(await newWallet?.account?.address);
-    console.log(nostrKeys);
-
+    setIsExtension(false);
     try {
       const profileData = await loadProfile(nostrKeys.pub);
       setProfileDetails(profileData);
@@ -999,6 +816,9 @@ const Home: NextPage = () => {
             )}
             <ProfileDetailsBox />
             <nav className="flex flex-wrap p-4">
+              <button className="btn btn-success mr-2 md:mr-4 lg:mr-6" onClick={reload}>
+                Refresh
+              </button>
               <button
                 className="btn btn-ghost mr-2 md:mr-4 lg:mr-6"
                 onClick={() => {
@@ -1033,7 +853,7 @@ const Home: NextPage = () => {
                       if (receiver) {
                         await handleTip(receiver);
                       } else {
-                        notification.error("Profile not registered");
+                        notification.error("Profile not registred");
                       }
                     }}
                   >
@@ -1079,7 +899,7 @@ const Home: NextPage = () => {
                     onClick={() => {
                       const relay_modal = document.getElementById("relay_modal") as HTMLDialogElement;
                       if (relay_modal) relay_modal;
-                      setRelayURL("wss://nostr-bouncer.scobrudot.dev");
+                      setRelayURL("wss://relay.primal.net");
                       handleConnectRelay();
                     }}
                   >
@@ -1388,69 +1208,6 @@ const Home: NextPage = () => {
                 <p className="mb-2 text-lg font-medium">{event.created.content}</p>
               </div>
             )}
-            <div>
-              <div role="tablist" className="tabs tabs-boxed mb-5">
-                <a
-                  role="tab"
-                  className="tab"
-                  onClick={async () => {
-                    setActiveTab("encryptedNotesEvents");
-                  }}
-                >
-                  Notes
-                </a>
-                <a
-                  role="tab"
-                  className="tab"
-                  onClick={async () => {
-                    setActiveTab("encryptedEvents");
-                  }}
-                >
-                  Direct Messages
-                </a>
-                <a
-                  role="tab"
-                  className="tab"
-                  onClick={async () => {
-                    setActiveTab("pastEvents");
-                  }}
-                >
-                  Your Post
-                </a>
-                <a
-                  role="tab"
-                  className="tab "
-                  onClick={async () => {
-                    setActiveTab("fetchEvents");
-                  }}
-                >
-                  Feed
-                </a>
-                <a
-                  role="tab"
-                  className="tab font-bold"
-                  onClick={async () => {
-                    await reload();
-                  }}
-                >
-                  Refresh 🔄️
-                </a>
-                <input
-                  placeholder="Leave empty to fetch all events"
-                  type="text"
-                  className="input input-xs mx-2"
-                  onChange={e => setTagToFind(e.target.value)}
-                />
-                <button className="  btn btn-xs" disabled={!connected} onClick={reload}>
-                  Search
-                </button>
-              </div>
-              <TabContent />
-              <h3 className=" gap-2 flex flex-row text-lg mb-4">
-                <span> Donate to support the project to</span>
-                <Address address={"0xb542E27732a390f509fD1FF6844a8386fe320f7f"} /> 🙏
-              </h3>
-            </div>
           </div>
         ) : (
           <div className="font-black m-5">Connect your wallet</div>
