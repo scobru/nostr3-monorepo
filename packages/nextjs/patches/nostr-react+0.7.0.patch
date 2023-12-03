@@ -1,0 +1,13 @@
+diff --git a/node_modules/nostr-react/src/useProfile.tsx b/node_modules/nostr-react/src/useProfile.tsx
+index 44fd200..c919d30 100644
+--- a/node_modules/nostr-react/src/useProfile.tsx
++++ b/node_modules/nostr-react/src/useProfile.tsx
+@@ -5,6 +5,8 @@ import { useEffect, useState } from "react"
+ import { useNostrEvents } from "./core"
+ import { uniqValues } from "./utils"
+ 
++// new packages addedd 
++
+ export interface Metadata {
+   name?: string
+   username?: string

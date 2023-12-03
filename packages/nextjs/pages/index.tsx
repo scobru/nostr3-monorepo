@@ -4,7 +4,7 @@ import MecenateHelper from "@scobru/crypto-ipfs";
 import { Nostr3 } from "@scobru/nostr3/dist/nostr3";
 import type { NextPage } from "next";
 import { finishEvent, getPublicKey, relayInit } from "nostr-tools";
-import { nip19 } from "nostr-tools";
+import nip19 from "nostr-tools";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/blur.css";
 import { createWalletClient, http, parseEther, toBytes } from "viem";
@@ -13,6 +13,7 @@ import { keccak256 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { optimism } from "viem/chains";
 import { useWalletClient } from "wagmi";
+import { useGlobalState } from "~~/services/store/store";
 import { notification } from "~~/utils/scaffold-eth";
 
 declare global {
@@ -26,12 +27,12 @@ declare global {
 
 const Home: NextPage = () => {
   const { data: signer } = useWalletClient();
-  const [privateKey, setPrivateKey] = useState("");
+  //const [privateKey, setPrivateKey] = useState("");
   const [nostrPrivateKey, setNostrPrivateKey] = useState("");
   const [publicKey, setPublicKey] = useState("");
   const [nostrPublicKey, setNostrPublicKey] = useState("");
   const [event, setEvent] = useState<any>(null);
-  const [relayURL, setRelayURL] = useState("wss://relay.primal.net"); // Replace with a real relay URL
+  const [relayURL, setRelayURL] = useState("wss://relay.damus.io"); // Replace with a real relay URL
   const [relay, setRelay] = useState<any>(null);
   const [showKeys, setShowKeys] = useState(false);
   // const [relayList, setRelayList] = useState([]);
@@ -79,6 +80,7 @@ const Home: NextPage = () => {
   const [pubKeyEthAddressList, setPubKeyEthAddressList] = useState<any[]>([]);
   const [isExtension, setIsExtension] = useState(false);
   const [evmAddress, setEvmAddress] = useState("");
+  const privateKey = useGlobalState(state => state.privateKey);
 
   const openTipModal = () => {
     const tip_modal = document.getElementById("tip_modal") as HTMLDialogElement;
@@ -438,7 +440,7 @@ const Home: NextPage = () => {
     setPublicKey(_pubKey);
     setNostrPublicKey(nip19.npubEncode(_pubKey));
     setNProfile(nip19.nprofileEncode({ pubkey: _pubKey }));
-    setPrivateKey("");
+    useGlobalState.setState({ privateKey: "" });
     setNostrPrivateKey("");
     setEvmAddress("");
     setWallet("");
@@ -574,7 +576,7 @@ const Home: NextPage = () => {
     const nostr3 = new Nostr3(pkSlice);
     const nostrKeys = nostr3.generateNostrKeys();
     setNostrPrivateKey(nostrKeys.nsec);
-    setPrivateKey(nostrKeys.sec);
+    useGlobalState.setState({ privateKey: nostrKeys.sec });
     setPublicKey(getPublicKey(nostrKeys.sec));
     setNostrPublicKey(nostrKeys.npub);
     setNProfile(nostrKeys.nprofile);
@@ -899,7 +901,7 @@ const Home: NextPage = () => {
                     onClick={() => {
                       const relay_modal = document.getElementById("relay_modal") as HTMLDialogElement;
                       if (relay_modal) relay_modal;
-                      setRelayURL("wss://relay.primal.net");
+                      setRelayURL("wss://relay.damus.io");
                       handleConnectRelay();
                     }}
                   >
