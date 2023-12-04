@@ -7,6 +7,7 @@ import { type Event, Filter, Relay, UnsignedEvent } from "nostr-tools";
 import { BsChatRightQuote } from "react-icons/bs";
 import { FaRetweet } from "react-icons/fa";
 import { FcDislike, FcLike } from "react-icons/fc";
+import { useGlobalState } from "~~/services/store/store";
 
 interface RepostEventCardProps {
   pk: string | null;
@@ -50,6 +51,16 @@ export default function RepostEventCard(props: RepostEventCardProps) {
     return stats;
   }
 
+  const [isNostr3Account, setIsNostr3Account] = useState<boolean>(false);
+  const nostr3List = useGlobalState(state => state.nostr3List);
+
+  useEffect(() => {
+    if (!nostr3List) return;
+    // check if the props.event.pubkey is contained in nostr3List.pubkey index
+    const isNostr3Account = nostr3List.some((item: { pubkey: string }) => item.pubkey === props.event.pubkey);
+    setIsNostr3Account(isNostr3Account);
+  }, [nostr3List, props.event.pubkey]);
+
   const [relevantEvent, setRelevantEvent] = useState<Event | null>(null);
   const { txtContent, imgLinks } = extractImageLinks(props.event.content);
 
@@ -79,7 +90,12 @@ export default function RepostEventCard(props: RepostEventCardProps) {
   }, [props.isQuotedRepost]);
 
   return (
-    <div className="overflow-hidden rounded-lg bg-base-100  shadow border" hidden={props.showEvent ? true : false}>
+    <div className="overflow-hidden bg-base-100 shadow border border-dashed" hidden={props.showEvent ? true : false}>
+      {isNostr3Account && (
+        <div className="badge-success">
+          <span className="font-semibold mx-2 my-2">Nostr3 Account</span>
+        </div>
+      )}
       <div
         className="px-4 py-5 sm:px-6 text-lg hover:bg-base-300/25 hover:!text-xl hover:cursor-pointer hover:underline hover:decoration-green-300"
         onClick={() => {

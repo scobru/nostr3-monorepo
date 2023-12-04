@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { atom, useAtom } from "jotai";
 import { Relay } from "nostr-tools";
-import nip19 from "nostr-tools";
+import {nip19} from "nostr-tools";
 
 const uniqValues = (value: string, index: number, self: string[]) => {
   return self.indexOf(value) === index;

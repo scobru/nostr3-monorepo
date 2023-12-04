@@ -1,10 +1,9 @@
 import React, { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { ArchiveBoxIcon, Bars3Icon, BugAntIcon, HomeIcon } from "@heroicons/react/24/outline";
+import { ArchiveBoxIcon, Bars3Icon, BugAntIcon, HomeIcon, KeyIcon } from "@heroicons/react/24/outline";
 import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { useOutsideClick } from "~~/hooks/scaffold-eth";
-
 
 interface HeaderMenuLink {
   label: string;
@@ -16,6 +15,11 @@ export const menuLinks: HeaderMenuLink[] = [
     label: "Home",
     href: "/",
     icon: <HomeIcon className="h-4 w-4" />,
+  },
+  {
+    label: "Login",
+    href: "/login",
+    icon: <KeyIcon className="h-4 w-4" />,
   },
   {
     label: "Client",

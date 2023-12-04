@@ -30,7 +30,7 @@ export default function CreatedAccModal(props: CreatedAccModalProps) {
               </div>
               <div className="mt-3 w-full h-full text-center sm:ml-4 sm:mt-0 sm:text-left">
                 <h3 className="font-semibold text-gray-800 dark:text-gray-200" id="modal-title">
-                  Store Your Keys Somewhere Safe Fren <span className="ml-2 text-lg font-bold text-green-700">:)</span>
+                  Store Your Keys Somewhere Safe <span className="ml-2 text-lg font-bold text-green-700">:)</span>
                 </h3>
                 <div className="mt-10 w-full h-50 flex flex-row justify-center space-x-5">
                   <button

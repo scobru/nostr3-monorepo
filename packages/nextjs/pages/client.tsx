@@ -7,19 +7,13 @@ import EventLoader from "../components/client/eventLoader";
 import RelayCtrlCard from "../components/client/relayCtrlCard";
 import { RELAYS } from "../utils/constants";
 import { NextPage } from "next";
-import {
-  Event,
-  Filter,
-  QuotedEvent,
-  Relay,
-  UnsignedEvent,
-  getEventHash,
-  getPublicKey,
-  relayInit,
-  signEvent,
-} from "nostr-tools";
+import { Event, Filter, Relay, UnsignedEvent, getEventHash, getPublicKey, relayInit, signEvent } from "nostr-tools";
 import { useWalletClient } from "wagmi";
 import { useGlobalState } from "~~/services/store/store";
+
+type QuotedEvent = Event & {
+  quotedEvent: Event;
+};
 
 const Client: NextPage = () => {
   const [showKeysModal, setShowKeysModal] = useState<boolean>(false);
@@ -30,9 +24,9 @@ const Client: NextPage = () => {
   const [relay, setRelay] = useState<Relay | null>(null);
   const [sk, setSk] = useState<string | null>(null);
   const [pk, setPk] = useState<string | null>(sk ? getPublicKey(sk) : null);
-  const privateKey = useGlobalState(state => state.privateKey);
+  const privateKey = useGlobalState(state => state.nostrKeys.sec);
   const { data: signer } = useWalletClient();
-  const [ethTipAmount, setEthTipAmount] = useState<string>("0.01");
+  const [ethTipAmount, setEthTipAmount] = useState<string>("");
 
   useEffect(() => {
     const connectRelay = async () => {
@@ -89,7 +83,7 @@ const Client: NextPage = () => {
   };
 
   return (
-    <div className="w-screen h-screen">
+    <div className="w-screen h-screen mb-5">
       <div className="flex flex-col w-screen">
         <div className="flex flex-row w-screen h-10">
           <div className="flex w-full flex-col items-center justify-center">
@@ -104,7 +98,6 @@ const Client: NextPage = () => {
             <ThemeSwitcher />
           </div> */}
         </div>
-
         <div className="flex flex-row h-screen">
           <div className="flex flex-col w-2/6 h-screen p-5 space-y-4">
             {relay && sk && pk ? (

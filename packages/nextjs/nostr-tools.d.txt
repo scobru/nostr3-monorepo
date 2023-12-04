@@ -80,6 +80,17 @@ declare module "nostr-tools" {
   export declare function decrypt(privkey: string, pubkey: string, data: string): Promise<string>;
 
   // Nip 19
+  export declare class nip19 {
+    constructor();
+    decode(nip19: string): DecodeResult;
+    nsecEncode(hex: string): string;
+    npubEncode(hex: string): string;
+    noteEncode(hex: string): string;
+    nprofileEncode(profile: ProfilePointer): string;
+    neventEncode(event: EventPointer): string;
+    naddrEncode(addr: AddressPointer): string;
+    nrelayEncode(url: string): string;
+  }
 
   export type ProfilePointer = {
     pubkey: string;

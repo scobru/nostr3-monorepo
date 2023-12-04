@@ -1,14 +1,17 @@
 /* eslint-disable prefer-const */
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useProfile } from "../../hooks/scaffold-eth";
 import { extractImageLinks } from "../../utils/parsing";
 import RepostEventCard from "./repostEventCard";
-import { type Event, Filter, Relay, UnsignedEvent } from "nostr-tools";
-import { BsChatRightQuote, BsCurrencyDollar } from "react-icons/bs";
+import { Nostr3 } from "@scobru/nostr3/dist/nostr3";
+import { type Event, Filter, Relay, UnsignedEvent, nip19 } from "nostr-tools";
+import { BsChatLeftDots, BsChatRightQuote, BsCurrencyDollar } from "react-icons/bs";
 import { FaRetweet } from "react-icons/fa";
 import { FcDislike, FcLike } from "react-icons/fc";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import { parseEther } from "viem";
+import { useGlobalState } from "~~/services/store/store";
 import { notification } from "~~/utils/scaffold-eth";
 
 interface DisplayEventCardProps {
@@ -32,6 +35,14 @@ interface ReactionStats {
 }
 
 export default function DisplayEventCard(props: DisplayEventCardProps) {
+  const privateKey = useGlobalState(state => state.nostrKeys.sec);
+  const publicKey = useGlobalState(state => state.nostrKeys.pub);
+  const nostr3 = new Nostr3(privateKey);
+  const nostr3List = useGlobalState(state => state.nostr3List);
+  const setEventId = useGlobalState(state => state.setEventId);
+  const [nevent, setNevent] = useState<Event | null>(null);
+  const [isNostr3Account, setIsNostr3Account] = useState<boolean>(false);
+
   function getReactionStats(reactions: Event[]): ReactionStats {
     const stats: ReactionStats = {
       nLikes: 0,
@@ -63,31 +74,63 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
 
   const { data: userData } = useProfile({ pubkey: props.event.pubkey, relay: selectedRelay });
 
-  /*  const reactionEvents = useNostrEvents({
-    filter: {
-      "#e": [props.event.id],
-      kinds: [6, 7],
-    },
-  }).events; */
-
   const [reactionEvents, setReactionEvents] = useState<Event[]>([]);
 
+  const fetchReactionEvents = async () => {
+    const events = await selectedRelay.list([
+      {
+        "#e": [props.event.id],
+        kinds: [6, 7],
+      },
+    ]);
+    setReactionEvents(events);
+  };
+
   useEffect(() => {
-    const fetchReactionEvents = async () => {
-      const events = await selectedRelay.list([
-        {
-          "#e": [props.event.id],
-          kinds: [6, 7],
-        },
-      ]);
-      setReactionEvents(events);
-    };
     fetchReactionEvents();
   }, [selectedRelay, props.event.id]);
 
-  const { txtContent, imgLinks } = extractImageLinks(props.event.content);
+  const [content, setContent] = useState("");
+  const [txtContent, setTxtContent] = useState("");
+  const [imgLinks, setImgLinks] = useState<string[]>([]);
+
+  useEffect(() => {
+    const runDecryptContent = async () => {
+      const decryptedContent = await nostr3.decryptDM(props.event.content, publicKey);
+      setContent(decryptedContent);
+    };
+
+    if (props.event.kind == 4) {
+      runDecryptContent();
+    } else {
+      setContent(props.event.content as string);
+    }
+  }, [props.event, publicKey]);
+
+  useEffect(() => {
+    if (content) {
+      const { txtContent, imgLinks } = extractImageLinks(String(content));
+      setTxtContent(String(txtContent));
+      setImgLinks(imgLinks);
+    }
+  }, [content]);
+
+  useEffect(() => {
+    if (!nostr3List) return;
+    // check if the props.event.pubkey is contained in nostr3List.pubkey index
+    const isNostr3Account = nostr3List.some((item: { pubkey: string }) => item.pubkey === props.event.pubkey);
+    setIsNostr3Account(isNostr3Account);
+  }, [nostr3List, props.event.pubkey]);
 
   let { nLikes, nDislikes, userLiked, userDisliked, userReposted }: ReactionStats = getReactionStats(reactionEvents);
+
+  useEffect(() => {
+    const run = async () => {
+      const _nevent = await nip19.neventEncode(props.event);
+      setNevent(_nevent as any);
+    };
+    run();
+  }, [props.event.sig]);
 
   // If event is a simple repost
   if (props.event.kind == 6) {
@@ -123,9 +166,16 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
 
   return (
     <div
-      className="rounded-xl  overflow-hidden rounded-lgshadow border border-base "
+      className={`overflow-hidden shadow border border-base ${
+        isNostr3Account ? "bg-slate-800 border-dashed shadow-success shadow-sm" : "bg-inherit  border-dashed"
+      }`}
       hidden={props.showEvent ? true : false}
     >
+      {isNostr3Account && (
+        <div className="badge-success">
+          <span className="font-semibold mx-2 my-2">Nostr3 Account</span>
+        </div>
+      )}
       <div
         className="px-4 py-5 sm:px-6 text-lg hover:!text-xl hover:cursor-pointer hover:underline hover:decoration-green-300"
         onClick={() => {
@@ -161,12 +211,36 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
               null}
         </div>
       </div>
+      <Link
+        href={"https://njump.me/" + nevent}
+        className="px-4 py-2 sm:px-6 text-lg"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        event
+      </Link>
+      <Link
+        href={"https://njump.me/" + nip19.nprofileEncode(props.event)}
+        className="px-4 py-2 sm:px-6 text-lg"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        profile
+      </Link>
+      <Link
+        href={"https://njump.me/" + nip19.npubEncode(props.event.pubkey)}
+        className="px-4 py-2 sm:px-6 text-lg"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        pubKey
+      </Link>
       <div className="px-4 py-2 sm:px-6 text-lg">
         <div className="flex flex-row justify-between">
           <div className="flex flex-row justify-start space-x-1">
             <button
               className={userDisliked ? "hover:bg-success p-2" : "hover:bg-success hover:dark::bg-primary p-2"}
-              onClick={() => {
+              onClick={async () => {
                 if (!props.pk) return;
 
                 if (userLiked) userLiked = false;
@@ -182,18 +256,19 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
                   ],
                   pubkey: props.pk,
                 });
+                await fetchReactionEvents();
               }}
             >
               <div className="flex flex-row items-center space-x-2">
                 <FcDislike className="h-5 w-5 hover:cursor-pointer" />
-                <span className={userDisliked ? "hover:bg-success p-1" : "hover:bg-success hover:dark::bg-primary p-1"}>
+                <span className={userDisliked ? "hover:bg-red p-1" : "hover:bg-red hover:dark::bg-primary p-1"}>
                   {nDislikes}
                 </span>
               </div>
             </button>
             <button
               className={userLiked ? "hover:bg-success p-1" : "hover:bg-success hover:dark::bg-primary p-1"}
-              onClick={() => {
+              onClick={async () => {
                 if (!props.pk) return;
 
                 if (userDisliked) userDisliked = false;
@@ -209,6 +284,8 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
                   ],
                   pubkey: props.pk,
                 });
+
+                await fetchReactionEvents();
               }}
             >
               <div className="flex flex-row items-center space-x-2">
@@ -218,6 +295,16 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
             </button>
           </div>
           <div className="flex flex-row justify-start space-x-1">
+            <button
+              className="hover:bg-success hover:dark::bg-primary p-1"
+              onClick={() => {
+                setEventId(props.event.id);
+              }}
+            >
+              <div className="flex flex-row items-center">
+                <BsChatLeftDots className="h-5 w-5 hover:cursor-pointer text-green-300" />
+              </div>
+            </button>
             <button
               className={userReposted ? "hover:bg-success p-1" : "hover:bg-success hover:dark::bg-primary p-1"}
               onClick={() => {
@@ -260,29 +347,31 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
                 <BsChatRightQuote className="h-5 w-5 hover:cursor-pointer text-green-300" />
               </div>
             </button>
-            <button
-              className="hover:bg-success hover:dark::bg-primary p-1"
-              onClick={async () => {
-                console.log("tip");
-                const result = await props.getEvent({
-                  kinds: [30078],
-                  authors: [props.event.pubkey],
-                });
-
-                if (props?.ethTipAmount && props?.signer && result && result.content.startsWith("0x")) {
-                  await props?.signer?.sendTransaction({
-                    to: String(result?.content),
-                    value: parseEther(String(props?.ethTipAmount)),
+            {isNostr3Account ? (
+              <button
+                className="hover:bg-success hover:dark::bg-primary p-1"
+                onClick={async () => {
+                  console.log("tip");
+                  const result = await props.getEvent({
+                    kinds: [30078],
+                    authors: [props.event.pubkey],
                   });
-                } else {
-                  notification.error("Nostr3 account not found");
-                }
-              }}
-            >
-              <div className="flex flex-row items-center">
-                <BsCurrencyDollar className="h-5 w-5 hover:cursor-pointer text-green-300" />
-              </div>
-            </button>
+
+                  if (props?.ethTipAmount && props?.signer && result && result.content.startsWith("0x")) {
+                    await props?.signer?.sendTransaction({
+                      to: String(result?.content),
+                      value: parseEther(String(props?.ethTipAmount)),
+                    });
+                  } else {
+                    notification.error("Nostr3 account not found");
+                  }
+                }}
+              >
+                <div className="flex flex-row items-center">
+                  <BsCurrencyDollar className="h-5 w-5 hover:cursor-pointer text-green-300" />
+                </div>
+              </button>
+            ) : null}
           </div>
         </div>
       </div>

@@ -12,13 +12,21 @@ import create from "zustand";
 type TGlobalState = {
   nativeCurrencyPrice: number;
   setNativeCurrencyPrice: (newNativeCurrencyPriceState: number) => void;
-  privateKey: string;
-  setPrivateKeyStorage: (newPrivateKey: string) => void;
+  nostrKeys: any;
+  setNostrKeys: (newNostrKeys: any) => void;
+  nostr3List: any;
+  setNostr3List: (newNostr3List: any) => void;
+  eventId: string;
+  setEventId: (newEventId: string) => void;
 };
 
 export const useGlobalState = create<TGlobalState>(set => ({
   nativeCurrencyPrice: 0,
   setNativeCurrencyPrice: (newValue: number): void => set(() => ({ nativeCurrencyPrice: newValue })),
-  privateKey: "",
-  setPrivateKeyStorage: (newPrivateKey: string): void => set(() => ({ privateKey: newPrivateKey })),
+  nostrKeys: {},
+  setNostrKeys: (newNostrKeys: any): void => set(() => ({ nostrKeys: newNostrKeys })),
+  nostr3List: "",
+  setNostr3List: (newNostr3List: any): void => set(() => ({ nostr3List: newNostr3List })),
+  eventId: "",
+  setEventId: (newEventId: string): void => set(() => ({ eventId: newEventId })),
 }));

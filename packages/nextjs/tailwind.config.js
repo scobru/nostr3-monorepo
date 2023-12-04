@@ -50,6 +50,9 @@ module.exports = {
       },
       fontFamily: {
         sans: ["Inter", "sans-serif"],
+        lato: ["Lato", "sans-serif"],
+        mono: ["Roboto Mono", "monospace"],
+        raleway: ["Raleway", "sans-serif"],
       },
     },
   },
