@@ -80,6 +80,7 @@ declare module "nostr-tools" {
   export declare function decrypt(privkey: string, pubkey: string, data: string): Promise<string>;
 
   // Nip 19
+
   export type ProfilePointer = {
     pubkey: string;
     relays?: string[];

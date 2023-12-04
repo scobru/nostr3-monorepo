@@ -4,7 +4,7 @@ import MecenateHelper from "@scobru/crypto-ipfs";
 import { Nostr3 } from "@scobru/nostr3/dist/nostr3";
 import type { NextPage } from "next";
 import { finishEvent, getPublicKey, relayInit } from "nostr-tools";
-import nip19 from "nostr-tools";
+import { npubEncode, nprofileEncode } from "nostr-tools";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/blur.css";
 import { createWalletClient, http, parseEther, toBytes } from "viem";
@@ -32,7 +32,7 @@ const Home: NextPage = () => {
   const [publicKey, setPublicKey] = useState("");
   const [nostrPublicKey, setNostrPublicKey] = useState("");
   const [event, setEvent] = useState<any>(null);
-  const [relayURL, setRelayURL] = useState("wss://relay.damus.io"); // Replace with a real relay URL
+  const [relayURL, setRelayURL] = useState("wss://relay.primal.net"); // Replace with a real relay URL
   const [relay, setRelay] = useState<any>(null);
   const [showKeys, setShowKeys] = useState(false);
   // const [relayList, setRelayList] = useState([]);
@@ -347,7 +347,7 @@ const Home: NextPage = () => {
       // only event.content start with 0x
       if (event.kind != 30078) return null;
       if (event.content.slice(0, 2) !== "0x") return null;
-      eventResult.push({ pubkey: event.pubkey, npub: nip19.npubEncode(event.pubkey), evmAddress: event.content });
+      eventResult.push({ pubkey: event.pubkey, npub: npubEncode(event.pubkey), evmAddress: event.content });
     });
 
     setPubKeyEthAddressList(eventResult);
@@ -438,8 +438,8 @@ const Home: NextPage = () => {
     const _pubKey = await window.nostr.getPublicKey();
     setIsExtension(true);
     setPublicKey(_pubKey);
-    setNostrPublicKey(nip19.npubEncode(_pubKey));
-    setNProfile(nip19.nprofileEncode({ pubkey: _pubKey }));
+    setNostrPublicKey(npubEncode(_pubKey));
+    setNProfile(nprofileEncode({ pubkey: _pubKey }));
     useGlobalState.setState({ privateKey: "" });
     setNostrPrivateKey("");
     setEvmAddress("");
@@ -901,7 +901,7 @@ const Home: NextPage = () => {
                     onClick={() => {
                       const relay_modal = document.getElementById("relay_modal") as HTMLDialogElement;
                       if (relay_modal) relay_modal;
-                      setRelayURL("wss://relay.damus.io");
+                      setRelayURL("wss://relay.primal.net");
                       handleConnectRelay();
                     }}
                   >

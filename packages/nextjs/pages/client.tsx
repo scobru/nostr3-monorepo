@@ -26,7 +26,7 @@ const Client: NextPage = () => {
   const [showEventsLoader, setShowEventsLoader] = useState<boolean>(true);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [events, setEvents] = useState<Event[] | QuotedEvent[]>([]);
-  const [curRelayName, setCurRelayName] = useState<string>("wss://relay.damus.io");
+  const [curRelayName, setCurRelayName] = useState<string>("wss://relay.primal.net");
   const [relay, setRelay] = useState<Relay | null>(null);
   const [sk, setSk] = useState<string | null>(null);
   const [pk, setPk] = useState<string | null>(sk ? getPublicKey(sk) : null);
