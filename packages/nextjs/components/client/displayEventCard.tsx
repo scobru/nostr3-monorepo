@@ -105,7 +105,7 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
 
   useEffect(() => {
     const runDecryptContent = async () => {
-      const decryptedContent = await nostr3.decryptDM(props.event.content, publicKey);
+      const decryptedContent = await nostr3.decryptDM(props.event.content, props.event.tags[0][1]);
       setContent(decryptedContent);
     };
 
@@ -194,9 +194,8 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
 
   return (
     <div
-      className={`overflow-hidden shadow  ${
-        isNostr3Account ? "bg-slate-800 border-dashed shadow-success shadow-sm" : "bg-inherit "
-      }`}
+      className={`overflow-hidden shadow  ${isNostr3Account ? "bg-slate-800 border-dashed shadow-success shadow-sm" : "bg-inherit "
+        }`}
       hidden={props.showEvent ? true : false}
     >
       {isNostr3Account && (
@@ -235,11 +234,11 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
           <span className="text-lg text-gray-800 dark:text-gray-200">{txtContent}</span>
           {imgLinks
             ? //image link found
-              imgLinks.map((imgLink, i) => {
-                return <LazyLoadImage src={imgLink} key={i}></LazyLoadImage>;
-              })
+            imgLinks.map((imgLink, i) => {
+              return <LazyLoadImage src={imgLink} key={i}></LazyLoadImage>;
+            })
             : // no img link found so just return nothing
-              null}
+            null}
         </div>
       </div>
       <Link
@@ -289,7 +288,6 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
                   ],
                   pubkey: props.pk,
                 });
-                await props.handleFollowFilter();
 
                 await fetchReactionEvents();
 
@@ -330,7 +328,7 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
                   ],
                   pubkey: props.pk,
                 });
-                await props.handleFollowFilter();
+
                 setReactionStats(prevStats => ({
                   ...prevStats,
                   nLikes: prevStats.nLikes + 1,

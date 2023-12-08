@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useProfile } from "../../hooks/scaffold-eth/useProfile";
 import { Nostr3 } from "@scobru/nostr3/dist/nostr3";
-import { Filter, Relay, UnsignedEvent } from "nostr-tools";
+import { Filter, Relay, UnsignedEvent, nip19 } from "nostr-tools";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import { useGlobalState } from "~~/services/store/store";
 import { notification } from "~~/utils/scaffold-eth";
@@ -62,9 +62,8 @@ export default function CreatePostCard(props: CreatePostCardProps) {
 
   return (
     <div
-      className={`divide-y divide-white rounded-lg shadow border-collapse border bg-base-300   ${
-        proposedEventId ? "border-success border-2 shadow-lg shadow-success" : " border-dashed"
-      }`}
+      className={`divide-y divide-white rounded-lg shadow border-collapse border bg-base-300   ${proposedEventId ? "border-success border-2 shadow-lg shadow-success" : " border-dashed"
+        }`}
     >
       <div
         className="  px-4 py-2 sm:px-6  text-lg hover:dark:bg-base-300/25 hover:!text-xl hover:cursor-pointer hover:underline hover:decoration-green-300"
@@ -207,22 +206,33 @@ export default function CreatePostCard(props: CreatePostCardProps) {
 
                 props.publishEvent(newEvent as UnsignedEvent);
               } else if (isDM) {
-                const ciphertext = await nostr3.encryptDM(textArea?.current?.value, pubKeyReceiver);
+                let formattedReceiver;
+
+                if (pubKeyReceiver.startsWith("npub")) {
+                  const result = nip19.decode(pubKeyReceiver)
+                  formattedReceiver = result.data
+                }
+                const ciphertext = await nostr3.encryptDM(textArea?.current?.value, formattedReceiver);
                 const newEvent = {
                   kind: 4,
                   created_at: Math.floor(Date.now() / 1000),
-                  tags: [["p", pubKeyReceiver]],
+                  tags: [["p", formattedReceiver]],
                   content: ciphertext,
                   pubkey: props.posterPK,
                 };
 
                 props.publishEvent(newEvent as UnsignedEvent);
               } else if (isDM && isEncrypted) {
-                const ciphertext = await nostr3.encryptDM(textArea?.current?.value, pubKeyReceiver);
+                let formattedReceiver;
+                if (pubKeyReceiver.startsWith("npub")) {
+                  const result = nip19.decode(pubKeyReceiver)
+                  formattedReceiver = result.data
+                }
+                const ciphertext = await nostr3.encryptDM(textArea?.current?.value, formattedReceiver);
                 const newEvent = {
                   kind: 4,
                   created_at: Math.floor(Date.now() / 1000),
-                  tags: [["p", pubKeyReceiver]],
+                  tags: [["p", formattedReceiver]],
                   content: ciphertext,
                   pubkey: props.posterPK,
                 };

@@ -1,5 +1,6 @@
 import type { NextPage } from "next";
 import { useWalletClient } from "wagmi";
+import Image from "next/image"
 
 const Home: NextPage = () => {
   const { data: signer } = useWalletClient();
@@ -7,9 +8,11 @@ const Home: NextPage = () => {
   return (
     <div className="flex items-center flex-col flex-grow pt-10 ">
       <div className="w-full">
+        <Image className="mb-5 mx-auto" src="/assets/nostr3.png" width={500} height={500} alt="nostr3"></Image>
+
         {signer?.account ? (
           <div className="m-5  mx-auto w-5/6">
-            <h1 className="text-8xl mb-10 font-semibold shadow-inner">NOSTR3</h1>
+            <h1 className="text-2xl mb-10 font-semibold shadow-inner">NOSTR3</h1>
             <h1 className="text-xl mb-5">generate programmatically key for nostr protocol with your web3 address</h1>
             <p className="text-xl justify-start">
               {" "}

@@ -38,8 +38,8 @@ const TrendingProfiles = (props: TrendingProfilesProps) => {
   if (error) return <p>Error: {error}</p>;
 
   return (
-    <div className="flex flex-col w-64 p-4 shadow-lg overflow-y-scroll overflow-x-hidden">
-      <h2 className="text-lg font-semibold mb-4">Trending Profiles</h2>
+    <div className="flex flex-col w-64 p-4 shadow-lg ">
+      <h2 className="text-xl font-semibold mb-4">Trending Profiles</h2>
       <div>
         {profiles.length > 0 &&
           profiles.slice(0, 10).map((profile: any) => {
@@ -67,10 +67,10 @@ const TrendingProfiles = (props: TrendingProfilesProps) => {
             );
           })}
       </div>
-      <h2 className="text-lg font-semibold mb-4">Trending Notes</h2>
+      <h2 className="text-xl font-semibold mb-4">Trending Notes</h2>
       <div>
         {notes.length > 0 &&
-          notes.slice(0, 10).map((note: any) => {
+          notes.slice(0, 5).map((note: any) => {
             const name = JSON.parse(note.author.content).name || "Unnamed Profile";
             const picture = JSON.parse(note.author.content).picture || "default-picture-url";
             const content = note.event.content;

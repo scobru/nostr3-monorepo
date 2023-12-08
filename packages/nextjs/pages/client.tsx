@@ -4,14 +4,24 @@ import CreatePostCard from "../components/client/createPostCard";
 import CreatedAccModal from "../components/client/createdAccModal";
 import DisplayEventCard from "../components/client/displayEventCard";
 import EventLoader from "../components/client/eventLoader";
+import MessagesCard from "../components/client/messagesCard";
 import RelayCtrlCard from "../components/client/relayCtrlCard";
 import TrendingProfiles from "../components/client/trendingProfiles";
 import { RELAYS } from "../utils/constants";
 import { NextPage } from "next";
-import { Event, Filter, Relay, UnsignedEvent, getEventHash, getPublicKey, nip19, relayInit, signEvent } from "nostr-tools";
+import {
+  Event,
+  Filter,
+  Relay,
+  UnsignedEvent,
+  getEventHash,
+  getPublicKey,
+  nip19,
+  relayInit,
+  signEvent,
+} from "nostr-tools";
 import { useWalletClient } from "wagmi";
 import { useGlobalState } from "~~/services/store/store";
-
 
 type QuotedEvent = Event & {
   quotedEvent: Event;
@@ -32,7 +42,7 @@ const Client: NextPage = () => {
   const [ethTipAmount, setEthTipAmount] = useState<string>("");
   const [eventData, setEventData] = useState([]);
   const setFollowerAuthors = useGlobalState(state => state.setFollowerAuthors);
-
+  const [showMessages, setShowMessages] = useState(false);
   const fetchEvents = async () => {
     const newEventData = await Promise.all(
       events.map(async event => {
@@ -184,7 +194,7 @@ const Client: NextPage = () => {
           </div>
 
           <div
-            className="flex flex-col w-4/6 p-5 max-h-full overflow-y-scroll space-y-4"
+            className="flex flex-col w-3/6 p-5 max-h-full overflow-y-scroll space-y-4"
             onScroll={() => {
               // TODO: Implement fetching new/older events while scrolling ("infinite" content scroll)
             }}
@@ -192,13 +202,18 @@ const Client: NextPage = () => {
             <nav className={`flex flex-row gap-2 ${showEventsLoader ? "hidden" : "flex"}`}>
               <button
                 className="px-4 py-2 sm:px-6 btn-ghost text-white rounded-md hover:secondary"
-                onClick={handleFollowFilter}
+                onClick={async () => {
+                  setShowMessages(false);
+                  handleFollowFilter();
+                }}
               >
                 Following
               </button>
               <button
-                className="px-4 py-2 sm:px-6 btn-ghost text-white rounded-md hover:bg-secondary"
+                className="px-4 py-2 sm:px-6 btn-ghost text-white rounded-md hover:secondary"
                 onClick={async () => {
+                  setShowMessages(false);
+
                   getEvents([{ kinds: [1], limit: 100 }]);
                 }}
               >
@@ -209,11 +224,12 @@ const Client: NextPage = () => {
                 className="px-4 py-2 sm:px-6 btn-ghost text-white rounded-md hover:secondary"
                 onClick={async () => {
                   const events = await relay?.list([{ kinds: [4] }]);
-                  const filteredEvents = events?.filter(event => {
-                    if (event.tags && event.tags[0][0] == "p" && event.tags[0][1] == pk) {
+                  const filteredEvents = await events?.filter(event => {
+                    if ((event.tags && event.tags[0][0] == "p" && event.tags[0][1] == pk) || event.pubkey == pk) {
                       return event;
                     }
                   });
+                  setShowMessages(true);
                   setEvents(filteredEvents as any);
                 }}
               >
@@ -226,6 +242,7 @@ const Client: NextPage = () => {
                   setSearchType(e.target.value);
                 }}
               >
+                <option value="">Select Type</option>
                 <option value="hashtag">HashTag</option>
                 <option value="pubkey">Public Key</option>
                 <option value="event">Event</option>
@@ -241,6 +258,8 @@ const Client: NextPage = () => {
               <button
                 className="my-auto btn btn-sm btn-ghost"
                 onClick={async () => {
+                  setShowMessages(false);
+
                   if (searchType == "hashtag") {
                     const _events = await relay?.list([{ kinds: [1] }]);
                     const filterEvents = _events?.filter((event: any) => {
@@ -277,8 +296,7 @@ const Client: NextPage = () => {
               </button>
             </nav>
             {showEventsLoader && <EventLoader />}
-
-            {eventData && (
+            {eventData && !showMessages ? (
               <div className="flex flex-col space-y-4 divider-white divide-y-2 ">
                 {eventData.map((event: Event) => (
                   <DisplayEventCard
@@ -296,6 +314,12 @@ const Client: NextPage = () => {
                   />
                 ))}
               </div>
+            ) : (
+              showMessages && (
+                <div>
+                  <MessagesCard relay={relay} />
+                </div>
+              )
             )}
           </div>
           {sk && pk && showKeysModal ? <CreatedAccModal sk={sk} pk={pk} setShowKeysModal={setShowKeysModal} /> : <></>}
@@ -304,6 +328,8 @@ const Client: NextPage = () => {
               <button
                 className="btn btn-circle btn-outline opacity-60"
                 onClick={async () => {
+                  setShowMessages(false);
+
                   getEvents([{ kinds: [1], limit: 100 }]);
                 }}
               >
