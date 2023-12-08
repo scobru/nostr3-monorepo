@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300&family=Raleway&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Lato:wght@300&family=Raleway&display=swap");
 @import "tailwindcss/base";
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
@@ -71,4 +71,22 @@ p {
 
 .read-the-docs {
   color: #888;
+}
+
+.fixed-bottom-right {
+  position: fixed;
+  top: 10px; /* Adjust as needed */
+  right: 40px; /* Adjust as needed */
+  z-index: 1000; /* Ensure it's above other content */
+}
+
+.parent-container {
+  position: relative;
+  /* other styles */
+}
+
+.absolute-bottom-right {
+  position: absolute;
+  top: 10px; /* Adjust as needed */
+  right: 40px; /* Adjust as needed */
 }

@@ -38,12 +38,7 @@
   {
     "kind": 1,
     "created_at": 1700671691,
-    "tags": [
-      [
-        "t",
-        "bitcoin"
-      ]
-    ],
+    "tags": [["t", "bitcoin"]],
     "content": "hello",
     "pubkey": "cb3bd81921c8b329967d7445debc8711f517ce238bb2b5d725cb472df088ac2b",
     "id": "c2aa06fbec93089ca26cf98fa5da41c7994618fc73863e9441a51790e1202116",

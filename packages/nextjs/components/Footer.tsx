@@ -45,7 +45,7 @@ export const Footer = () => {
         <ul className="menu menu-horizontal w-full">
           <div className="flex justify-center items-center gap-2 text-sm w-full">
             <div className="text-center">
-              <a href="https://github.com/scobru/nostr3" target="_blank" rel="noreferrer" className="link">
+              <a href="https://github.com/scobru/nostr3-monorepo" target="_blank" rel="noreferrer" className="link">
                 Fork me
               </a>
             </div>
@@ -65,8 +65,8 @@ export const Footer = () => {
             </div>
             <span>·</span>
             <div className="text-center">
-              <a href="https://t.me/joinchat/KByvmRe5wkR-8F_zz6AjpA" target="_blank" rel="noreferrer" className="link">
-                Support
+              <a href="https://t.me/nostr3" target="_blank" rel="noreferrer" className="link">
+                Telegram
               </a>
             </div>
           </div>

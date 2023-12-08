@@ -16,8 +16,10 @@ type TGlobalState = {
   setNostrKeys: (newNostrKeys: any) => void;
   nostr3List: any;
   setNostr3List: (newNostr3List: any) => void;
-  eventId: string;
-  setEventId: (newEventId: string) => void;
+  event: any;
+  setEvent: (newEvent: any) => void;
+  followerAuthors: string[];
+  setFollowerAuthors: (newFollowerAuthors: string[]) => void;
 };
 
 export const useGlobalState = create<TGlobalState>(set => ({
@@ -27,6 +29,8 @@ export const useGlobalState = create<TGlobalState>(set => ({
   setNostrKeys: (newNostrKeys: any): void => set(() => ({ nostrKeys: newNostrKeys })),
   nostr3List: "",
   setNostr3List: (newNostr3List: any): void => set(() => ({ nostr3List: newNostr3List })),
-  eventId: "",
-  setEventId: (newEventId: string): void => set(() => ({ eventId: newEventId })),
+  event: {},
+  setEvent: (newEvent: any): void => set(() => ({ event: newEvent })),
+  followerAuthors: [],
+  setFollowerAuthors: (newFollowerAuthors: any): void => set(() => ({ followerAuthors: newFollowerAuthors })),
 }));

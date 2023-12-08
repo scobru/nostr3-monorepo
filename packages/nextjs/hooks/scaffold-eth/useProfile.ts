@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { atom, useAtom } from "jotai";
 import { Relay } from "nostr-tools";
-import {nip19} from "nostr-tools";
+import { nip19 } from "nostr-tools";
 
 const uniqValues = (value: string, index: number, self: string[]) => {
   return self.indexOf(value) === index;
@@ -114,13 +114,8 @@ export function useProfile({
   const loadProfile = async (pubkey: string) => {
     try {
       const result = await relay.list([{ kinds: [0], authors: [pubkey] }]);
-      const parsedResult = JSON.parse(result[0].content);
-      if (result && result[0] && result[0].content) {
-        return parsedResult;
-      } else {
-        console.warn("Nessun profilo trovato o dati non validi per la chiave:", pubkey);
-        return null; // Restituisci null se non ci sono dati validi
-      }
+      console.log(result);
+      return JSON.parse(result[0].content);
     } catch (error) {
       console.error("Errore nel caricamento del profilo:", error);
       return null; // Gestisci l'errore restituendo null o un valore di default

@@ -18,7 +18,7 @@ export default function RelayCtrlCard(props: RelayCtrlCardProps) {
   }, [selectedRelay]);
 
   return (
-    <div className="divide-y divide-white h-3/6 overflow-hidden rounded-lg shadow border border-dashed border-green-300">
+    <div className="h-4/6 divide-y divide-white overflow-scroll scrollbar-thin scrollbar-thumb-primary scrollbar-track-primary-content  border bg-base-300 rounded-lg">
       <div className="px-4 py-5 sm:px-6 text-lg hover:dark:bg-base-300/25 hover:!text-xl hover:underline hover:decoration-green-300">
         <div className="flex flex-row justify-center">
           <span className="text-lg font-semibold">

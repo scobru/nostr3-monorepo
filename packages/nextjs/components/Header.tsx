@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { ArchiveBoxIcon, Bars3Icon, BugAntIcon, HomeIcon, KeyIcon } from "@heroicons/react/24/outline";
+import { ArchiveBoxIcon, Bars3Icon, DocumentIcon, HomeIcon, KeyIcon } from "@heroicons/react/24/outline";
 import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { useOutsideClick } from "~~/hooks/scaffold-eth";
 
@@ -27,9 +27,9 @@ export const menuLinks: HeaderMenuLink[] = [
     icon: <ArchiveBoxIcon className="h-4 w-4" />,
   },
   {
-    label: "Debug Contracts",
-    href: "/debug",
-    icon: <BugAntIcon className="h-4 w-4" />,
+    label: "Docs",
+    href: "https://github.com/dostr-eth/nips/blob/ethkeygen/111.md",
+    icon: <DocumentIcon className="h-4 w-4" />,
   },
 ];
 

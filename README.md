@@ -7,3 +7,45 @@ Just a quick interaction with Nostr3, and you are all set.
 What's more, it links your Nostr accounts to your EVM accounts, making tipping a breeze for all Nostr accounts set up through Nostr3.
 While Nostr3 isn't a full-fledged Nostr protocol client, it's a super handy tool that covers the basics.
 But hey, for the best Nostr experience, we suggest pairing it with open-source clients. Happy Nostring!
+
+Nostr3 build from Frens Client:
+<https://github.com/antonio-hickey/Frens>
+
+Nostr3 use the Nostr Band API:
+<https://api.nostr.band>
+
+Nost3 aims to extend the capabilities of the Nostr protocol by incorporating Web3 payment functionalities. This integration allows users to generate a Nostr keypair by signing a signature through their wallet. Along with this keypair, an Ethereum Virtual Machine (EVM) address will be created.
+
+## Key Features
+
+- **Keypair and EVM Address Generation:** Users can generate a Nostr keypair and an associated EVM address through their wallet.
+  
+- **Database Registration:** The generated EVM address can be registered in the Nostr3 database. This process links it to the user's public key within the Nostr protocol.
+  
+- **Sending and Receiving Tips:** Users can send and receive tips to and from all public keys associated with Nostr users who have registered their addresses on Nostr3.
+
+## NIPS
+
+    - NIP-02
+    - NIP-04
+    - NIP-07
+    - NIP-10 
+    - NIP-18 
+    - NIP-25
+    - NIP-111
+
+## How It Works
+
+1. **Signature Signing:** Users sign a signature using their wallet to initiate the keypair generation process.
+
+2. **Keypair Generation:** A Nostr keypair is generated, alongside an EVM address.
+
+3. **Database Registration:** Users register their EVM address in the Nostr3 database, linking it to their Nostr protocol public key.
+
+4. **Tip Transactions:** Once registered, users can engage in tip transactions with other Nostr users who have also registered on Nostr3.
+
+## Benefits
+
+- **Enhanced Functionality:** By bridging Nostr with Web3, users enjoy a broader range of payment options and interactions.
+  
+- **User-Friendly:** The process is designed to be straightforward, catering to both beginners and experienced users in the blockchain space.

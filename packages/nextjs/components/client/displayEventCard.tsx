@@ -24,6 +24,7 @@ interface DisplayEventCardProps {
   getEvents: (filters: Filter[]) => void;
   getEvent: (filter: Filter) => Promise<Event | null | undefined>;
   publishEvent: (event: UnsignedEvent, _sk?: string) => void;
+  handleFollowFilter: any;
 }
 
 interface ReactionStats {
@@ -32,6 +33,7 @@ interface ReactionStats {
   userLiked: boolean;
   userDisliked: boolean;
   userReposted: boolean;
+  userFollow: boolean;
 }
 
 export default function DisplayEventCard(props: DisplayEventCardProps) {
@@ -39,9 +41,11 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
   const publicKey = useGlobalState(state => state.nostrKeys.pub);
   const nostr3 = new Nostr3(privateKey);
   const nostr3List = useGlobalState(state => state.nostr3List);
-  const setEventId = useGlobalState(state => state.setEventId);
+  const setEvent = useGlobalState(state => state.setEvent);
   const [nevent, setNevent] = useState<Event | null>(null);
   const [isNostr3Account, setIsNostr3Account] = useState<boolean>(false);
+  const followerAuthors = useGlobalState(state => state.followerAuthors);
+  const setFollowerAuthors = useGlobalState(state => state.setFollowerAuthors);
 
   function getReactionStats(reactions: Event[]): ReactionStats {
     const stats: ReactionStats = {
@@ -50,17 +54,22 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
       userLiked: false,
       userDisliked: false,
       userReposted: false,
+      userFollow: false,
     };
     for (let i = 0; i < reactions.length; i++) {
       const { content, pubkey, kind } = reactions[i];
-      if (["+", "🤙", "👍", "🤍"].includes(content)) {
+      if (["+", "🤙", "👍", "🤍", "🖤", "💔", "🖖"].includes(content)) {
         stats.nLikes++;
         if (pubkey === props.pk) stats.userLiked = true;
       } else if (["-", "👎"].includes(content)) {
         stats.nDislikes++;
         if (pubkey === props.pk) stats.userDisliked = true;
-      } else if (kind == 6) stats.userReposted = true;
+      } else if (kind == 6) {
+        stats.userReposted = true;
+      }
     }
+
+    stats.userFollow = followerAuthors.includes(String(props.event.pubkey));
 
     return stats;
   }
@@ -115,14 +124,31 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
     }
   }, [content]);
 
+  const [evmAddress, setEvmAddress] = useState<string | undefined>(undefined);
+
   useEffect(() => {
     if (!nostr3List) return;
     // check if the props.event.pubkey is contained in nostr3List.pubkey index
     const isNostr3Account = nostr3List.some((item: { pubkey: string }) => item.pubkey === props.event.pubkey);
+    // fetch evmAddress from nostr3List  when item.pubkey === props.event.pubkey
+    const evmAddress = nostr3List.find((item: { pubkey: string }) => item.pubkey === props.event.pubkey)?.evmAddress;
+    setEvmAddress(evmAddress);
     setIsNostr3Account(isNostr3Account);
   }, [nostr3List, props.event.pubkey]);
 
-  let { nLikes, nDislikes, userLiked, userDisliked, userReposted }: ReactionStats = getReactionStats(reactionEvents);
+  const [reactionStats, setReactionStats] = useState({
+    nLikes: 0,
+    nDislikes: 0,
+    userLiked: false,
+    userDisliked: false,
+    userReposted: false,
+    userFollow: false,
+  });
+
+  useEffect(() => {
+    const stats = getReactionStats(reactionEvents);
+    setReactionStats(stats);
+  }, [reactionEvents]);
 
   useEffect(() => {
     const run = async () => {
@@ -130,21 +156,23 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
       setNevent(_nevent as any);
     };
     run();
-  }, [props.event.sig]);
+  }, [props.event]);
 
   // If event is a simple repost
   if (props.event.kind == 6) {
     return (
-      <RepostEventCard
-        relay={props.relay}
-        event={props.event}
-        pk={props.pk}
-        publishEvent={props.publishEvent}
-        getEvents={props.getEvents}
-        getEvent={props.getEvent}
-        showEvent={props.showEvent}
-        isQuotedRepost={false}
-      />
+      <div className="divider-white divide-y-2">
+        <RepostEventCard
+          relay={props.relay}
+          event={props.event}
+          pk={props.pk}
+          publishEvent={props.publishEvent}
+          getEvents={props.getEvents}
+          getEvent={props.getEvent}
+          showEvent={props.showEvent}
+          isQuotedRepost={false}
+        />
+      </div>
     );
   }
 
@@ -166,16 +194,17 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
 
   return (
     <div
-      className={`overflow-hidden shadow border border-base ${
-        isNostr3Account ? "bg-slate-800 border-dashed shadow-success shadow-sm" : "bg-inherit  border-dashed"
+      className={`overflow-hidden shadow  ${
+        isNostr3Account ? "bg-slate-800 border-dashed shadow-success shadow-sm" : "bg-inherit "
       }`}
       hidden={props.showEvent ? true : false}
     >
       {isNostr3Account && (
         <div className="badge-success">
-          <span className="font-semibold mx-2 my-2">Nostr3 Account</span>
+          <span className="font-semibold mx-2 my-2">Nostr3 Account: {evmAddress}</span>
         </div>
       )}
+
       <div
         className="px-4 py-5 sm:px-6 text-lg hover:!text-xl hover:cursor-pointer hover:underline hover:decoration-green-300"
         onClick={() => {
@@ -183,14 +212,16 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
             {
               kinds: [1],
               authors: [props.event.pubkey],
+              limit: 100,
             },
           ];
+
           props.getEvents(filter);
         }}
       >
-        <div className="flex flex-row justify-between">
-          <LazyLoadImage className="inline-block h-8 w-8 rounded-full" src={userData?.picture} alt="Profile" />
-          <span className="font-bold">{userData?.name}</span>
+        <div className="flex flex-row justify-between  p-3">
+          <LazyLoadImage className="inline-block h-16 w-16 rounded-full" src={userData?.picture} alt="Profile" />
+          <span className="font-bold my-auto">{userData?.name}</span>
           <span className="inline-flex items-center gap-x-1.5 rounded-md  px-1.5 py-0.5 text-xs font-medium">
             <svg className="h-1.5 w-1.5" viewBox="0 0 6 6" aria-hidden="true">
               <circle cx="3" cy="3" r="3" />
@@ -239,12 +270,14 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
         <div className="flex flex-row justify-between">
           <div className="flex flex-row justify-start space-x-1">
             <button
-              className={userDisliked ? "hover:bg-success p-2" : "hover:bg-success hover:dark::bg-primary p-2"}
+              className={
+                reactionStats.userDisliked ? "hover:bg-success p-2" : "hover:bg-success hover:dark::bg-primary p-2"
+              }
               onClick={async () => {
                 if (!props.pk) return;
 
-                if (userLiked) userLiked = false;
-                userDisliked = userDisliked ? false : true;
+                if (reactionStats.userLiked) reactionStats.userLiked = false;
+                reactionStats.userDisliked = reactionStats.userDisliked ? false : true;
 
                 props.publishEvent({
                   kind: 7,
@@ -256,23 +289,36 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
                   ],
                   pubkey: props.pk,
                 });
+                await props.handleFollowFilter();
+
                 await fetchReactionEvents();
+
+                setReactionStats(prevStats => ({
+                  ...prevStats,
+                  nDislikes: prevStats.nDislikes + 1,
+                }));
               }}
             >
               <div className="flex flex-row items-center space-x-2">
                 <FcDislike className="h-5 w-5 hover:cursor-pointer" />
-                <span className={userDisliked ? "hover:bg-red p-1" : "hover:bg-red hover:dark::bg-primary p-1"}>
-                  {nDislikes}
+                <span
+                  className={
+                    reactionStats.userDisliked ? "hover:bg-red p-1" : "hover:bg-red hover:dark::bg-primary p-1"
+                  }
+                >
+                  {reactionStats.nDislikes}
                 </span>
               </div>
             </button>
             <button
-              className={userLiked ? "hover:bg-success p-1" : "hover:bg-success hover:dark::bg-primary p-1"}
+              className={
+                reactionStats.userLiked ? "hover:bg-success p-1" : "hover:bg-success hover:dark::bg-primary p-1"
+              }
               onClick={async () => {
                 if (!props.pk) return;
 
-                if (userDisliked) userDisliked = false;
-                userLiked = userLiked ? false : true;
+                if (reactionStats.userDisliked) reactionStats.userDisliked = false;
+                reactionStats.userLiked = reactionStats.userLiked ? false : true;
 
                 props.publishEvent({
                   kind: 7,
@@ -284,21 +330,85 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
                   ],
                   pubkey: props.pk,
                 });
-
-                await fetchReactionEvents();
+                await props.handleFollowFilter();
+                setReactionStats(prevStats => ({
+                  ...prevStats,
+                  nLikes: prevStats.nLikes + 1,
+                }));
               }}
             >
               <div className="flex flex-row items-center space-x-2">
                 <FcLike className="h-5 w-5 hover:cursor-pointer" />
-                <span className={userLiked ? "text-primary dark:text-white" : "text-white"}>{nLikes}</span>
+                <span className={reactionStats.userLiked ? "text-primary dark:text-white" : "text-white"}>
+                  {reactionStats.nLikes}
+                </span>
               </div>
             </button>
+            {reactionStats.userFollow == false ? (
+              <button
+                className={reactionStats.userFollow ? "p-1" : "p-1"}
+                onClick={async () => {
+                  if (!props.pk) return;
+
+                  // If props.event.pubkey is not in followAuthors, add it
+                  if (props.event.pubkey && !followerAuthors.includes(props.event.pubkey)) {
+                    followerAuthors.push(props.event.pubkey);
+                  }
+
+                  const tags = followerAuthors.map((author: any) => ["p", author]);
+
+                  props.publishEvent({
+                    kind: 3,
+                    content: "{}",
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: tags,
+                    pubkey: props.pk,
+                  });
+
+                  setFollowerAuthors(followerAuthors);
+                  setReactionStats(prevStats => ({
+                    ...prevStats,
+                    userFollow: true,
+                  }));
+                }}
+              >
+                <div className="flex flex-row items-center space-x-2"></div>
+                <button className="btn btn-sm hover:btn-success">FOLLOW</button>
+              </button>
+            ) : (
+              <button
+                className="btn btn-sm hover:btn-danger my-auto"
+                onClick={async () => {
+                  const index = followerAuthors.indexOf(props.event.pubkey);
+                  if (index > -1) {
+                    followerAuthors.splice(index, 1);
+                  }
+
+                  const tags = followerAuthors.map((author: any) => ["p", author]);
+
+                  props.publishEvent({
+                    kind: 3,
+                    content: "{}",
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: tags,
+                    pubkey: props.pk!,
+                  });
+
+                  setReactionStats(prevStats => ({
+                    ...prevStats,
+                    userFollow: false,
+                  }));
+                }}
+              >
+                UNFOLLOW
+              </button>
+            )}
           </div>
           <div className="flex flex-row justify-start space-x-1">
             <button
               className="hover:bg-success hover:dark::bg-primary p-1"
               onClick={() => {
-                setEventId(props.event.id);
+                setEvent(props.event);
               }}
             >
               <div className="flex flex-row items-center">
@@ -306,7 +416,9 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
               </div>
             </button>
             <button
-              className={userReposted ? "hover:bg-success p-1" : "hover:bg-success hover:dark::bg-primary p-1"}
+              className={
+                reactionStats.userReposted ? "hover:bg-success p-1" : "hover:bg-success hover:dark::bg-primary p-1"
+              }
               onClick={() => {
                 if (!props.pk) return;
 
@@ -320,6 +432,8 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
                     ["p", props.event.pubkey],
                   ],
                 });
+
+                notification.success("Reposted");
               }}
             >
               <div className="flex flex-row items-center">
@@ -341,6 +455,8 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
                     ["p", props.event.pubkey],
                   ],
                 });
+
+                notification.success("Quoted");
               }}
             >
               <div className="flex flex-row items-center">
@@ -351,19 +467,13 @@ export default function DisplayEventCard(props: DisplayEventCardProps) {
               <button
                 className="hover:bg-success hover:dark::bg-primary p-1"
                 onClick={async () => {
-                  console.log("tip");
-                  const result = await props.getEvent({
-                    kinds: [30078],
-                    authors: [props.event.pubkey],
-                  });
-
-                  if (props?.ethTipAmount && props?.signer && result && result.content.startsWith("0x")) {
+                  if (props?.ethTipAmount && props?.signer && evmAddress) {
                     await props?.signer?.sendTransaction({
-                      to: String(result?.content),
+                      to: String(evmAddress),
                       value: parseEther(String(props?.ethTipAmount)),
                     });
                   } else {
-                    notification.error("Nostr3 account not found");
+                    notification.error("Nostr3 account not found or tip amount not set");
                   }
                 }}
               >

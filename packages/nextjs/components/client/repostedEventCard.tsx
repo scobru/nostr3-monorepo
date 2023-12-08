@@ -31,7 +31,7 @@ export default function RepostedEventCard(props: RepostedEventCardProps) {
 
   return (
     <div
-      className=" overflow-hidden shadow border border-dashed hover:cursor-pointer bg-base-300 hover:dark:bg-base-200 hover:underline hover:dark:decoration-green-300"
+      className=" overflow-hidden shadow hover:cursor-pointer bg-base-300 hover:dark:bg-base-200 hover:underline hover:dark:decoration-green-300"
       hidden={props.showEvent ? true : false}
       onClick={() => {
         // Filter events to the refrenced event

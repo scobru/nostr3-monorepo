@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { useProfile } from "../../hooks/scaffold-eth";
 import { extractImageLinks } from "../../utils/parsing";
 import RepostedEventCard from "./repostedEventCard";
-import { useNostrEvents } from "nostr-react";
 import { type Event, Filter, Relay, UnsignedEvent } from "nostr-tools";
 import { BsChatRightQuote } from "react-icons/bs";
 import { FaRetweet } from "react-icons/fa";
 import { FcDislike, FcLike } from "react-icons/fc";
+import { LazyLoadImage } from "react-lazy-load-image-component";
 import { useGlobalState } from "~~/services/store/store";
+import { notification } from "~~/utils/scaffold-eth";
 
 interface RepostEventCardProps {
   pk: string | null;
@@ -19,7 +20,6 @@ interface RepostEventCardProps {
   publishEvent: (event: UnsignedEvent, _sk?: string) => void;
   isQuotedRepost: boolean;
 }
-
 interface ReactionStats {
   nLikes: number;
   nDislikes: number;
@@ -39,13 +39,15 @@ export default function RepostEventCard(props: RepostEventCardProps) {
     };
     for (let i = 0; i < reactions.length; i++) {
       const { content, pubkey, kind } = reactions[i];
-      if (["+", "🤙", "👍"].includes(content)) {
+      if (["+", "🤙", "👍", "🤍", "🖤", "💔", "🖖"].includes(content)) {
         stats.nLikes++;
         if (pubkey === props.pk) stats.userLiked = true;
       } else if (["-", "👎"].includes(content)) {
         stats.nDislikes++;
         if (pubkey === props.pk) stats.userDisliked = true;
-      } else if (kind == 6) stats.userReposted = true;
+      } else if (kind == 6) {
+        stats.userReposted = true;
+      }
     }
 
     return stats;
@@ -53,6 +55,14 @@ export default function RepostEventCard(props: RepostEventCardProps) {
 
   const [isNostr3Account, setIsNostr3Account] = useState<boolean>(false);
   const nostr3List = useGlobalState(state => state.nostr3List);
+
+  const [selectedRelay, setSelectedRelay] = useState<Relay>(props.relay as Relay);
+  const [reactionEvents, setReactionEvents] = useState([]);
+
+  useEffect(() => {
+    if (!props.relay) return;
+    setSelectedRelay(props.relay);
+  }, [props.relay]);
 
   useEffect(() => {
     if (!nostr3List) return;
@@ -65,15 +75,20 @@ export default function RepostEventCard(props: RepostEventCardProps) {
   const { txtContent, imgLinks } = extractImageLinks(props.event.content);
 
   const { data: userData } = useProfile({ pubkey: props.event.pubkey, relay: props.relay as Relay });
-  const reactionEvents = useNostrEvents({
-    filter: {
-      "#e": [props.event.id],
-      kinds: [6, 7],
-    },
-  }).events;
 
-  // eslint-disable-next-line prefer-const
-  let { nLikes, nDislikes, userLiked, userDisliked, userReposted }: ReactionStats = getReactionStats(reactionEvents);
+  const [reactionStats, setReactionStats] = useState({
+    nLikes: 0,
+    nDislikes: 0,
+    userLiked: false,
+    userDisliked: false,
+    userReposted: false,
+    userFollow: false,
+  });
+
+  useEffect(() => {
+    const stats = getReactionStats(reactionEvents);
+    setReactionStats(stats as any);
+  }, [reactionEvents]);
 
   useEffect(() => {
     if (props.isQuotedRepost) {
@@ -89,8 +104,22 @@ export default function RepostEventCard(props: RepostEventCardProps) {
     }
   }, [props.isQuotedRepost]);
 
+  const fetchReactionEvents = async () => {
+    const events = await selectedRelay.list([
+      {
+        "#e": [props.event.id],
+        kinds: [6, 7],
+      },
+    ]);
+    setReactionEvents(events as any);
+  };
+
+  useEffect(() => {
+    fetchReactionEvents();
+  }, [selectedRelay, props.event.id]);
+
   return (
-    <div className="overflow-hidden bg-base-100 shadow border border-dashed" hidden={props.showEvent ? true : false}>
+    <div className="overflow-hidden bg-base-100 shadow  " hidden={props.showEvent ? true : false}>
       {isNostr3Account && (
         <div className="badge-success">
           <span className="font-semibold mx-2 my-2">Nostr3 Account</span>
@@ -109,7 +138,7 @@ export default function RepostEventCard(props: RepostEventCardProps) {
         }}
       >
         <div className="flex flex-row justify-between">
-          <img className="inline-block h-8 w-8 rounded-full" src={userData?.picture} alt="" />
+          <LazyLoadImage className="inline-block h-8 w-8 rounded-full" src={userData?.picture} alt="" />
           <span className="font-bold text-gray-800 dark:text-gray-200">{userData?.name}</span>
           <span className="inline-flex items-center gap-x-1.5 rounded-md bg-secondary-100 px-1.5 py-0.5 text-xs font-medium text-green-700">
             <svg className="h-1.5 w-1.5 fill-green-500" viewBox="0 0 6 6" aria-hidden="true">
@@ -120,7 +149,7 @@ export default function RepostEventCard(props: RepostEventCardProps) {
         </div>
       </div>
       <div className="px-4 py-5 sm:p-6 w-full">
-        <div className="mt-2 w-full">
+        <div className="mt-2 w-full divider-white divider-y-2">
           <span className="inline-block w-full text-lg text-gray-800 dark:text-gray-200 text-start pl-2 pb-2">
             {props.event.kind == 6 ? (
               <>
@@ -133,7 +162,7 @@ export default function RepostEventCard(props: RepostEventCardProps) {
                 {txtContent}
                 {imgLinks
                   ? imgLinks.map((imgLink, i) => {
-                      return <img src={imgLink} key={i}></img>;
+                      return <LazyLoadImage src={imgLink} key={i}></LazyLoadImage>;
                     })
                   : null}
               </>
@@ -142,7 +171,7 @@ export default function RepostEventCard(props: RepostEventCardProps) {
 
           {relevantEvent && (
             <RepostedEventCard
-              relay={props.relay}
+              relay={selectedRelay}
               pk={props.pk}
               event={relevantEvent}
               getEvents={props.getEvents}
@@ -159,15 +188,13 @@ export default function RepostEventCard(props: RepostEventCardProps) {
           <div className="flex flex-row justify-start space-x-1">
             <button
               className={
-                userDisliked
-                  ? "bg-secondary-300/25 border border-white hover:bg-secondary-300/25"
-                  : "bg-black/25 dark:bg-white/25 border border-white hover:bg-secondary-300/25"
+                reactionStats.userDisliked ? "hover:bg-success p-2" : "hover:bg-success hover:dark::bg-primary p-2"
               }
               onClick={() => {
                 if (!props.pk) return;
 
-                if (userLiked) userLiked = false;
-                userDisliked = userDisliked ? false : true;
+                if (reactionStats.userLiked) reactionStats.userLiked = false;
+                reactionStats.userDisliked = reactionStats.userDisliked ? false : true;
 
                 props.publishEvent({
                   kind: 7,
@@ -179,24 +206,33 @@ export default function RepostEventCard(props: RepostEventCardProps) {
                   ],
                   pubkey: props.pk,
                 });
+
+                setReactionStats(prevStats => ({
+                  ...prevStats,
+                  nDislikes: prevStats.nDislikes + 1,
+                }));
               }}
             >
               <div className="flex flex-row items-center space-x-2">
                 <FcDislike className="h-5 w-5 hover:cursor-pointer" />
-                <span className={userDisliked ? "text-green-700 dark:text-white" : "text-white"}>{nDislikes}</span>
+                <span
+                  className={
+                    reactionStats.userDisliked ? "hover:bg-red p-1" : "hover:bg-red hover:dark::bg-primary p-1"
+                  }
+                >
+                  {reactionStats.nDislikes}
+                </span>
               </div>
             </button>
             <button
               className={
-                userLiked
-                  ? "bg-secondary-300/25 border border-white hover:bg-secondary-300/25"
-                  : "bg-black/25 dark:bg-white/25 border border-white hover:bg-secondary-300/25"
+                reactionStats.userLiked ? "hover:bg-success p-2" : "hover:bg-success hover:dark::bg-primary p-2"
               }
               onClick={() => {
                 if (!props.pk) return;
 
-                if (userDisliked) userDisliked = false;
-                userLiked = userLiked ? false : true;
+                if (reactionStats.userDisliked) reactionStats.userDisliked = false;
+                reactionStats.userLiked = reactionStats.userLiked ? false : true;
 
                 props.publishEvent({
                   kind: 7,
@@ -208,21 +244,28 @@ export default function RepostEventCard(props: RepostEventCardProps) {
                   ],
                   pubkey: props.pk,
                 });
+
+                setReactionStats(prevStats => ({
+                  ...prevStats,
+                  nLikes: prevStats.nLikes + 1,
+                }));
               }}
             >
               <div className="flex flex-row items-center space-x-2">
                 <FcLike className="h-5 w-5 hover:cursor-pointer" />
-                <span className={userLiked ? "text-green-700 dark:text-white" : "text-white"}>{nLikes}</span>
+                <span
+                  className={
+                    reactionStats.userLiked ? "hover:bg-success p-1" : "hover:bg-red hover:dark::bg-primary p-1"
+                  }
+                >
+                  {reactionStats.nLikes}
+                </span>
               </div>
             </button>
           </div>
           <div className="flex flex-row justify-start space-x-1">
             <button
-              className={
-                userReposted
-                  ? "bg-secondary-300/25 border border-white hover:bg-secondary-300/25"
-                  : "bg-black/25 dark:bg-white/25 border border-white hover:bg-secondary-300/25"
-              }
+              className={reactionStats.userReposted ? "hover:bg-red p-1" : "hover:bg-red hover:dark::bg-primary p-1"}
               onClick={() => {
                 if (!props.pk) return;
 
@@ -236,6 +279,13 @@ export default function RepostEventCard(props: RepostEventCardProps) {
                     ["p", props.event.pubkey],
                   ],
                 });
+
+                setReactionStats(prevStats => ({
+                  ...prevStats,
+                  userReposted: true,
+                }));
+
+                notification.success("Reposted");
               }}
             >
               <div className="flex flex-row items-center">
@@ -243,7 +293,7 @@ export default function RepostEventCard(props: RepostEventCardProps) {
               </div>
             </button>
             <button
-              className="bg-black/25 dark:bg-white/25 border border-white hover:bg-secondary-300/25"
+              className="hover:bg-red p-1"
               onClick={() => {
                 if (!props.pk) return;
 
@@ -257,6 +307,8 @@ export default function RepostEventCard(props: RepostEventCardProps) {
                     ["p", props.event.pubkey],
                   ],
                 });
+
+                notification.success("Quoted");
               }}
             >
               <div className="flex flex-row items-center">
