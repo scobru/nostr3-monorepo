@@ -17,6 +17,21 @@ Nost3 aims to extend the capabilities of the Nostr protocol by incorporating Web
 
     - NIP-111 : https://github.com/nostr-protocol/nips/pull/268
 
+## API Section
+
+In addition to the existing features, Nostr3 introduces a convenient API functionality. This feature allows you to fetch an Ethereum Virtual Machine (EVM) address that corresponds to a specific Nostr public key (npub address).
+
+You can easily access this API using the following endpoint:
+
+<https://nostr3.vercel.app/api/npub123XYZ>
+
+By querying this endpoint with a Nostr public key, you will receive a response containing two key pieces of information:
+
+- **`evmAddress`**: This is the corresponding EVM address linked to the provided Nostr public key.
+- **`pubKey`**: The original Nostr public key used in the query.
+
+This API feature enhances the interoperability between Nostr protocol and EVM-based systems, making it easier for users to manage their identities and transactions across different blockchain platforms.
+
 ## Key Features
 
 - **Keypair and EVM Address Generation:** Users can generate a Nostr keypair and an associated EVM address through their wallet.
