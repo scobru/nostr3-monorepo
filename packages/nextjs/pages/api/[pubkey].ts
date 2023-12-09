@@ -1,11 +1,6 @@
 import { Mogu } from "@scobru/mogu";
 import fse from "fs-extra";
-
-interface IResponse {
-  error?: string;
-  message?: string;
-  data?: any;
-}
+import { nip19 } from "nostr-tools";
 
 export default async function handler(
   req: {
@@ -16,7 +11,7 @@ export default async function handler(
     status: (arg0: any) => {
       (): any;
       new (): any;
-      json: { (arg0: IResponse): void; new (): any }; // Usa IResponse qui
+      json: { (arg0: object): void; new (): any };
       end: { (): void; new (): any };
     };
   },
@@ -30,7 +25,7 @@ export default async function handler(
       process.env.NEXT_PUBLIC_DB_NAME,
     );
 
-    const { pubkey } = req.query;
+    const pubkey = req.query.pubkey;
 
     let cid;
     let state;
@@ -42,22 +37,33 @@ export default async function handler(
 
     console.log("IPFS hash", cid);
 
+    let formattedPubKey = "";
+
+    if (pubkey.startsWith("npub")) {
+      const decoded = nip19.decode(pubkey);
+      formattedPubKey = decoded.data as string;
+    } else {
+      formattedPubKey = pubkey;
+    }
+
     try {
       state = await mogu.load(cid);
       console.log("State;", state);
-      const content = JSON.stringify({ pubKey: pubkey });
+      const content = JSON.stringify({ pubKey: formattedPubKey });
       state = mogu.queryByContent(content);
-      console.log(pubkey);
       console.log("Query:", state);
     } catch (error) {
       console.log(error);
     }
 
-    state = JSON.stringify(state);
+    state = JSON.parse(JSON.stringify(state));
     console.log(state);
 
+    const evmAddress = state[0].id;
+    const pubKey = JSON.parse(state[0].content).pubKey;
+
     if (state) {
-      res.status(200).json({ data: state });
+      res.status(200).json({ evmAddress, pubKey });
     } else {
       res.status(404).json({ message: "No private key found for this contract address" });
     }

@@ -2143,7 +2143,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@scobru/nostr3@npm:^1.0.11, @scobru/nostr3@npm:^1.0.5":
+"@scobru/nostr3@npm:^1.0.5":
   version: 1.0.11
   resolution: "@scobru/nostr3@npm:1.0.11"
   dependencies:
@@ -2162,6 +2162,23 @@ __metadata:
     typescript: ^5.2.2
     ws: ^8.14.2
   checksum: 06fb2d0fff208f493dd3ea0d6ed8350d8174afb84114d19d5b680e9458a147741a93743bd7e63d2f8caae4a34567c5b46268c61120bb45cea427a9a9c3a49fb0
+  languageName: node
+  linkType: hard
+
+"@scobru/nostr3@npm:^1.1.5":
+  version: 1.1.5
+  resolution: "@scobru/nostr3@npm:1.1.5"
+  dependencies:
+    "@noble/hashes": ^1.3.2
+    "@noble/secp256k1": ^2.0.0
+    "@types/node": ^20.8.10
+    dotenv: ^16.3.1
+    nostr-tools: ^1.17.0
+    prettier: ^3.0.3
+    ts-node: ^10.9.1
+    tsc: ^2.0.4
+    typescript: ^5.2.2
+  checksum: f16dd0b6e236601a154a4bccf7d463c674a827562c16f49dcca885ab8585b1c9b115c7a9da5401e7991c9251eac6119452063398890e6c88346b7dfed610cf2a
   languageName: node
   linkType: hard
 
@@ -2285,7 +2302,7 @@ __metadata:
     "@rainbow-me/rainbowkit": 1.1.2
     "@scobru/crypto-ipfs": ^1.1.11
     "@scobru/mogu": ^1.2.7
-    "@scobru/nostr3": ^1.0.11
+    "@scobru/nostr3": ^1.1.5
     "@trivago/prettier-plugin-sort-imports": ^4.1.1
     "@types/elliptic": ^6
     "@types/fs-extra": ^11.0.4

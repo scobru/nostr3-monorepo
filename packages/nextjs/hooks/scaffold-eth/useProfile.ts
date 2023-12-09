@@ -114,7 +114,6 @@ export function useProfile({
   const loadProfile = async (pubkey: string) => {
     try {
       const result = await relay.list([{ kinds: [0], authors: [pubkey] }]);
-      console.log(result);
       return JSON.parse(result[0].content);
     } catch (error) {
       console.error("Errore nel caricamento del profilo:", error);

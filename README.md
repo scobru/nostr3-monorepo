@@ -5,16 +5,17 @@ Nostr3 is here to make your life easier when dealing with the Nostr protocol! It
 Need your keys?
 Just a quick interaction with Nostr3, and you are all set.
 What's more, it links your Nostr accounts to your EVM accounts, making tipping a breeze for all Nostr accounts set up through Nostr3.
-While Nostr3 isn't a full-fledged Nostr protocol client, it's a super handy tool that covers the basics.
-But hey, for the best Nostr experience, we suggest pairing it with open-source clients. Happy Nostring!
-
-Nostr3 build from Frens Client:
-<https://github.com/antonio-hickey/Frens>
-
-Nostr3 use the Nostr Band API:
-<https://api.nostr.band>
+For the best Nostr experience, we suggest pairing it with open-source clients. Happy Nostring!
 
 Nost3 aims to extend the capabilities of the Nostr protocol by incorporating Web3 payment functionalities. This integration allows users to generate a Nostr keypair by signing a signature through their wallet. Along with this keypair, an Ethereum Virtual Machine (EVM) address will be created.
+
+## PACKAGES
+
+    we build nostr3 npm package to provide the signature used to generate the keypair, you can find the reppo here https://github.com/scobru/nostr3 or you can install @scobru/nostr3.
+
+## NIPS
+
+    - NIP-111 : https://github.com/nostr-protocol/nips/pull/268
 
 ## Key Features
 
@@ -23,16 +24,6 @@ Nost3 aims to extend the capabilities of the Nostr protocol by incorporating Web
 - **Database Registration:** The generated EVM address can be registered in the Nostr3 database. This process links it to the user's public key within the Nostr protocol.
   
 - **Sending and Receiving Tips:** Users can send and receive tips to and from all public keys associated with Nostr users who have registered their addresses on Nostr3.
-
-## NIPS
-
-    - NIP-02
-    - NIP-04
-    - NIP-07
-    - NIP-10 
-    - NIP-18 
-    - NIP-25
-    - NIP-111
 
 ## How It Works
 

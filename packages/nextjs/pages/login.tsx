@@ -4,10 +4,19 @@ import Link from "next/link";
 import { hkdf } from "@noble/hashes/hkdf";
 import { sha256 } from "@noble/hashes/sha256";
 import * as secp256k1 from "@noble/secp256k1";
-import { Nostr3 } from "@scobru/nostr3/dist/nostr3";
+import { Nostr3 } from "@scobru/nostr3";
 import sha3 from "js-sha3";
 import type { NextPage } from "next";
-import { finishEvent, generatePrivateKey, getPublicKey, relayInit } from "nostr-tools";
+import {
+  Event,
+  UnsignedEvent,
+  finishEvent,
+  generatePrivateKey,
+  getEventHash,
+  getPublicKey,
+  relayInit,
+  signEvent,
+} from "nostr-tools";
 import { nip19 } from "nostr-tools";
 import { nip05 } from "nostr-tools";
 import { ProfilePointer } from "nostr-tools/lib/types/nip19";
@@ -17,13 +26,10 @@ import { createWalletClient, http, isAddress, parseEther } from "viem";
 import { toHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { optimism } from "viem/chains";
-import { useEnsName, useWalletClient } from "wagmi";
+import { useEnsName, usePublicClient, useWalletClient } from "wagmi";
 import { AddressInput } from "~~/components/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import { notification } from "~~/utils/scaffold-eth";
-
-//import MecenateHelper from "@scobru/crypto-ipfs";
-//import { keccak256 ,toBytes} from "viem";
 
 declare global {
   interface Window {
@@ -36,6 +42,9 @@ declare global {
 
 const Login: NextPage = () => {
   const { data: signer } = useWalletClient();
+  const provider = usePublicClient({
+    chainId: signer?.chain.id,
+  });
   const [privateKey, setPrivateKey] = useState("");
   const [nostrPrivateKey, setNostrPrivateKey] = useState("");
   const [publicKey, setPublicKey] = useState("");
@@ -81,11 +90,21 @@ const Login: NextPage = () => {
   const [pubKeyEthAddressList, setPubKeyEthAddressList] = useState<any[]>([]);
   const [isExtension, setIsExtension] = useState(false);
   const [evmAddress, setEvmAddress] = useState("");
+  const [isNostr3Account, setIsNostr3Account] = useState<boolean>(false);
+  const [eventId, setEventId] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const openTipModal = () => {
     const tip_modal = document.getElementById("tip_modal") as HTMLDialogElement;
     if (tip_modal) {
       tip_modal.showModal();
+    }
+  };
+
+  const openKeysModal = () => {
+    const keys_modal = document.getElementById("keys_modal") as HTMLDialogElement;
+    if (keys_modal) {
+      keys_modal.showModal();
     }
   };
 
@@ -112,45 +131,54 @@ const Login: NextPage = () => {
             <p className="text-md">{profileDetails.about}</p>
           </div>
         )}
-        <button className="btn text-left mb-5" onClick={() => setShowKeys(!showKeys)}>
-          {showKeys ? "Hide Keys" : "Show Keys"}
+        <button className="btn text-left mb-5" onClick={() => openKeysModal()}>
+          Show Keys
         </button>
-        {showKeys && (
-          <div className="w-fit bg-base-100 text-base-content rounded-lg p-5 text-left break-all mt-4">
-            <ul className="space-y-2">
-              {publicKey && (
-                <li className="font-bold border-b border-primary-content p-2">
-                  Public Key: <span className="font-normal">{publicKey}</span>
-                </li>
-              )}
-              {privateKey && (
-                <li className="font-bold border-b border-primary-content p-2">
-                  Private Key: <span className="font-normal">{privateKey}</span>
-                </li>
-              )}
-              {nostrPublicKey && (
-                <li className="font-bold border-b border-primary-content p-2">
-                  NIP19 Public Key: <span className="font-normal">{nostrPublicKey}</span>
-                </li>
-              )}
-              {nostrPrivateKey && (
-                <li className="font-bold border-b border-primary-content p-2">
-                  NIP19 Private Key: <span className="font-normal">{nostrPrivateKey}</span>
-                </li>
-              )}
-              {nProfile && (
-                <li className="font-bold p-2">
-                  NIP19 Nostr Profile: <span className="font-normal">{nProfile}</span>
-                </li>
-              )}
-              {wallet && (
-                <li className="font-bold p-2">
-                  EVM Address: <span className="font-normal">{wallet?.account?.address}</span>
-                </li>
-              )}
-            </ul>
+        <dialog id="keys_modal" className="modal bg-gradient-to-br from-primary to-secondary">
+          <div className="modal-box">
+            <div className="w-fit bg-base-100 text-base-content rounded-lg p-5 text-left break-all mt-4">
+              <ul className="space-y-2">
+                {publicKey && (
+                  <li className="font-bold border-b border-primary-content p-2">
+                    Public Key: <span className="font-normal">{publicKey}</span>
+                  </li>
+                )}
+                {privateKey && (
+                  <li className="font-bold border-b border-primary-content p-2">
+                    Private Key: <span className="font-normal">{privateKey}</span>
+                  </li>
+                )}
+                {nostrPublicKey && (
+                  <li className="font-bold border-b border-primary-content p-2">
+                    NIP19 Public Key: <span className="font-normal">{nostrPublicKey}</span>
+                  </li>
+                )}
+                {nostrPrivateKey && (
+                  <li className="font-bold border-b border-primary-content p-2">
+                    NIP19 Private Key: <span className="font-normal">{nostrPrivateKey}</span>
+                  </li>
+                )}
+                {nProfile && (
+                  <li className="font-bold p-2">
+                    NIP19 Nostr Profile: <span className="font-normal">{nProfile}</span>
+                  </li>
+                )}
+                {wallet && (
+                  <li className="font-bold p-2">
+                    EVM Address: <span className="font-normal">{wallet?.account?.address}</span>
+                  </li>
+                )}
+              </ul>
+            </div>
+            <div className="modal-action">
+              <form method="dialog">
+                {/* if there is a button in form, it will close the modal */}
+                <button className="btn">Close</button>
+              </form>
+            </div>
           </div>
-        )}
+        </dialog>
+
         <span className="block my-4 text-xl">
           {" "}
           Link an EVM address to your Nostr account. You can change it any time.
@@ -164,9 +192,22 @@ const Login: NextPage = () => {
           onChange={e => setEvmAddress(e.target.value)}
         /> */}
         <AddressInput onChange={e => setEvmAddress(e)} value={evmAddress} />
-        <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6 mt-5" onClick={handleSignIn}>
-          REGISTER
-        </label>
+        {!isNostr3Account ? (
+          <div>
+            <label className="btn btn-ghost  mr-2 md:mr-4 lg:mr-6 mt-5 bg-success text-black" onClick={handleSignIn}>
+              REGISTER
+            </label>
+          </div>
+        ) : (
+          <div>
+            <button
+              className="btn btn-ghost  mr-2 md:mr-4 lg:mr-6 mt-5 bg-success text-black"
+              onClick={() => openTipModal()}
+            >
+              Tip
+            </button>
+          </div>
+        )}
       </div>
     );
   };
@@ -187,32 +228,87 @@ const Login: NextPage = () => {
     }
   };
 
-  //   const loadEvmProfile = async (loadedPubKey: any) => {
-  //     try {
-  //       const result = await relay.list([{ kinds: [0], authors: [loadedPubKey] }]);
-  //       if (result && result[0] && result[0].content) {
-  //         return JSON.parse(result[0].content);
-  //       } else {
-  //         console.warn("Nessun profilo trovato o dati non validi per la chiave:", loadedPubKey);
-  //         return null; // Restituisci null se non ci sono dati validi
-  //       }
-  //     } catch (error) {
-  //       console.error("Errore nel caricamento del profilo:", error);
-  //       return null; // Gestisci l'errore restituendo null o un valore di default
-  //     }
-  //   };
-
   //::Tip
 
+  const createEvent = (unsignedEvent: UnsignedEvent, _sk: string): Event => {
+    const eventHash = getEventHash(unsignedEvent);
+    const signature = signEvent(unsignedEvent, _sk);
+    return {
+      ...unsignedEvent,
+      id: eventHash,
+      sig: signature,
+    };
+  };
+
+  const publishEvent = async (event: UnsignedEvent, _sk: string) => {
+    const signedEvent = createEvent(event, _sk);
+    await relay?.publish(signedEvent);
+  };
+
   const handleTip = async (receiver: any) => {
-    await signer?.sendTransaction({
-      to: receiver,
-      value: parseEther(String(amountToTip)),
-    });
-    notification.success("Tip sent");
-    const tip_modal = document.getElementById("tip_modal") as HTMLDialogElement;
-    if (tip_modal) {
-      tip_modal.close();
+    let message;
+    let newEvent;
+
+    try {
+      const txResponse = await signer?.sendTransaction({
+        to: receiver,
+        value: parseEther(String(amountToTip)),
+      });
+
+      if (!txResponse) {
+        throw new Error("Failed to send transaction");
+      }
+
+      const receipt = await provider.waitForTransactionReceipt({
+        hash: txResponse,
+      });
+
+      // Check if the transaction was successfully mined
+      if (receipt && txResponse) {
+        if (eventId === "") {
+          message = `Tip ${amountToTip} ETH to ${pubKeyReceiver} txHash: ${txResponse}`;
+          newEvent = {
+            kind: 1,
+            created_at: Math.floor(Date.now() / 1000),
+            tags: [
+              ["t", "nostr3", "tip"],
+              ["p", pubKeyReceiver],
+            ],
+            content: message,
+            pubkey: publicKey,
+          };
+        } else {
+          message = `Tip ${amountToTip} OPETH to ${pubKeyReceiver} for event ${eventId} txHash: ${txResponse}`;
+          const id = nip19.decode(eventId).data;
+          newEvent = {
+            kind: 1,
+            created_at: Math.floor(Date.now() / 1000),
+            tags: [
+              ["t", "nostr3", "tip"],
+              ["e", id],
+              ["p", pubKeyReceiver],
+            ],
+            content: message,
+            pubkey: publicKey,
+          };
+        }
+
+        if (!isExtension) {
+          await publishEvent(newEvent as UnsignedEvent, privateKey);
+        } else {
+          const signedEvent = window.nostr.signEvent(newEvent);
+          await relay?.publish(signedEvent);
+        }
+        notification.success("Tip sent");
+      }
+    } catch (error) {
+      console.error("Error during transaction:", error);
+      notification.error("Failed to send tip");
+    } finally {
+      const tip_modal = document.getElementById("tip_modal") as HTMLDialogElement;
+      if (tip_modal) {
+        tip_modal.close();
+      }
     }
   };
 
@@ -259,6 +355,8 @@ const Login: NextPage = () => {
 
       //setNostr3List(result);
       useGlobalState.setState({ nostr3List: result });
+
+      return result;
     } catch (error) {
       console.error("Error fetching public key:", error);
       // Ensure notification is a valid function/object in your context
@@ -267,21 +365,15 @@ const Login: NextPage = () => {
     }
   };
 
-  const handleSearchFromEVMtoRelay = async (pubKey: string) => {
+  /* const handleSearchFromEVMtoRelay = async (pubKey: string) => {
     await handleConnectRelay();
     const events = await relay.list([{ kinds: [30078], authors: [pubKey] }]);
     if (events.length === 0) return null;
     setEvmAddressReceiver(events[0].content);
     return events[0].content;
-  };
+  }; */
 
-  interface Event {
-    content: string;
-    pubkey: string;
-    kind: number;
-  }
-
-  const handleListAllPubkeyAndEthAddress = async () => {
+  /* const handleListAllPubkeyAndEthAddress = async () => {
     const _events = await relay.list([{ kinds: [30078], tags: [["d", "nostr3"]] }]);
     console.log("Events", _events);
     // sort event by date recent
@@ -303,9 +395,9 @@ const Login: NextPage = () => {
     useGlobalState.setState({ nostr3List: eventResult });
     setPubKeyEthAddressList(eventResult);
     return eventResult;
-  };
+  }; */
 
-  function getPublicKeyFromSecret(
+  /* function getPublicKeyFromSecret(
     secretKey: WithImplicitCoercion<string> | { [Symbol.toPrimitive](hint: "string"): string },
   ) {
     const pk = secp256k1.getPublicKey(Buffer.from(secretKey, "hex"), false).slice(1);
@@ -339,7 +431,7 @@ const Login: NextPage = () => {
       }
     }
     return false;
-  }
+  }*/
 
   const handleSearchFromPubkey = async (pubKey: string) => {
     const wallet = createWalletClient({
@@ -392,41 +484,6 @@ const Login: NextPage = () => {
 
   //::Handlers
 
-  const handleChangeMetadata = async () => {
-    const data = {
-      name: metadata.name,
-      display_name: metadata.display_name,
-      website: metadata.website,
-      about: metadata.about,
-      picture: metadata.picture,
-      image: metadata.image,
-      banner: metadata.banner,
-      nip05: metadata.nip05,
-      lud06: metadata.lud06,
-      lud16: metadata.lud16,
-      mastodonUrl: metadata.mastodonUrl,
-    };
-    const newEvent = {
-      kind: 0,
-      created_at: Math.floor(Date.now() / 1000),
-      tags: [],
-      content: JSON.stringify(data),
-      pubkey: publicKey,
-    };
-
-    // Sign and finalize the event
-    const signedEvent = finishEvent(newEvent, privateKey);
-    console.log(signedEvent);
-    // Publish the signed event
-    await relay.publish(signedEvent);
-    // Retrieve events from the relay
-    const events = await relay.list([{ kinds: [1] }]);
-    // Set state with the latest event and all retrieved events
-    setEvent({ created: signedEvent, all: events });
-
-    //relay.close();
-  };
-
   const handleConnectWithKeyPair = async () => {
     //const _pubKey = await window.nostr.getPublicKey();
     setIsExtension(true);
@@ -442,15 +499,24 @@ const Login: NextPage = () => {
   };
 
   const handleConnectExtension = async () => {
+    const list = await handleGetList();
+
     const _pubKey = await window.nostr.getPublicKey();
     setIsExtension(true);
     setPublicKey(_pubKey);
     setNostrPublicKey(nip19.npubEncode(_pubKey));
     setNProfile(nip19.nprofileEncode({ pubkey: _pubKey }));
     useGlobalState.setState({ nostrKeys: "" });
+
+    const isNostr3Account = list?.some(item => item.pubkey === _pubKey) as boolean;
+
+    // Wait until the EVM address is found
+    const _evmAddress = await list?.find(item => item.pubkey === _pubKey);
+    console.log(_evmAddress?.evmAddress);
+    setEvmAddress(_evmAddress?.evmAddress);
+    setIsNostr3Account(isNostr3Account);
     setPrivateKey("");
     setNostrPrivateKey("");
-    setEvmAddress("");
     setWallet("");
   };
 
@@ -470,8 +536,6 @@ const Login: NextPage = () => {
       (a: { created_at: number }, b: { created_at: number }) => b.created_at - a.created_at,
     );
 
-    console.log(_events);
-
     setEvent(_eventsSort);
   };
 
@@ -487,7 +551,7 @@ const Login: NextPage = () => {
   }, [signer]);
 
   useEffect(() => {
-    if (connected && pastEvents.length === 0) {
+    if (connected && pastEvents.length === 0 && publicKey) {
       const run = async () => {
         try {
           const profileData = await loadProfile(publicKey);
@@ -516,11 +580,17 @@ const Login: NextPage = () => {
         chain: optimism,
         transport: http(),
       });
-
       setWallet(newWallet);
       setEvmAddress(newWallet?.account?.address);
+      const isNostr3Account = pubKeyEthAddressList.some(
+        (item: { pubkey: string }) => item.pubkey === globalNostrKeys.pub,
+      );
+      setIsNostr3Account(isNostr3Account);
+    } else if (nostrKeys) {
+      const isNostr3Account = pubKeyEthAddressList.some((item: { pubkey: string }) => item.pubkey === nostrKeys.pub);
+      setIsNostr3Account(isNostr3Account);
     }
-  }, []);
+  }, [nostrKeys]);
 
   useEffect(() => {
     if (relay && relay.status == 3) {
@@ -603,8 +673,9 @@ const Login: NextPage = () => {
       const info = `eip155:${chainId}:${_address}`;
       const statement = `Log into Nostr client as '${petname}'\n\nIMPORTANT: Please verify the integrity and authenticity of connected Nostr client before signing this message\n\nSIGNED BY: ${info}`;
       const signature = (await signer?.signMessage({ message: statement })) as string;
-
-      const siwe = await signInWithX(petname, info, signature, password);
+      const pkSlice = toHex(privateKey).slice(2).slice(64);
+      const nostr3 = new Nostr3(privateKey);
+      const siwe = await nostr3.signInWithX(petname, info, signature, password);
 
       console.log(siwe);
 
@@ -694,7 +765,6 @@ const Login: NextPage = () => {
 
   const handleGenerateKeys = async () => {
     //const sk = generatePrivateKey();
-
     const kp = (await generateKeyPairFromSeed()) as { publicKey: string; secretKey: string };
     const pkSlice = toHex(kp.secretKey).slice(2).slice(64);
     const nostr3 = new Nostr3(pkSlice);
@@ -720,6 +790,7 @@ const Login: NextPage = () => {
     setWallet(newWallet);
     setEvmAddress(await newWallet?.account?.address);
     setIsExtension(false);
+
     try {
       const profileData = await loadProfile(nostrKeys.pub);
       setProfileDetails(profileData);
@@ -760,64 +831,69 @@ const Login: NextPage = () => {
     return true;
   };
 
-  const updateMetadata = (key: string, value: string) => {
-    setMetadata({ ...metadata, [key]: value });
-  };
+  const filteredPubKeyEthAddressList = searchTerm
+    ? pubKeyEthAddressList.filter(item => item.npub.toLowerCase().includes(searchTerm.toLowerCase()))
+    : pubKeyEthAddressList;
 
   return (
-    <div className="flex items-center flex-col flex-grow pt-10 ">
+    <div className="flex items-center flex-col flex-grow pt-10 w-full sm:w-4/5 md:w-3/4 lg:w-3/6 mx-auto">
       <div className="w-full">
         {signer?.account ? (
           <div className="m-5  mx-auto w-5/6">
-            <span className="block text-grey-800 font-semibold mx-5 my-2">LOGIN</span>
-            <nav className="flex flex-wrap p-4 text-center mx-auto w-auto bg-base-300 rounded-lg">
-              <input
-                type="text"
-                className="input input-primary mr-2 md:mr-4 lg:mr-6"
-                id="username"
-                placeholder="Username"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-              />
-              <input
-                type="password"
-                className="input input-primary  mr-2 md:mr-4 lg:mr-6"
-                id="password"
-                placeholder="Password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-              />
-              <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={handleGenerateKeys}>
-                Generate Keypair
-              </label>
-            </nav>
-            <nav className="flex flex-wrap p-4 text-center mx-auto w-auto bg-base-300 rounded-lg my-2">
-              <input
-                type="text"
-                className="input input-primary mr-2 md:mr-4 lg:mr-6"
-                id="username"
-                placeholder="PublicKey"
-                value={publicKey}
-                onChange={e => setPublicKey(e.target.value)}
-              />
-              <input
-                type="password"
-                className="input input-primary  mr-2 md:mr-4 lg:mr-6"
-                id="password"
-                placeholder="PrivateKey"
-                value={privateKey}
-                onChange={e => setPrivateKey(e.target.value)}
-              />
-              <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={handleConnectWithKeyPair}>
-                Login with keyPair
-              </label>
-              <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={handleConnectExtension}>
-                Login With extension
-              </label>
-              <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={handleGenerateRandomKeys}>
-                Generate Random
-              </label>
-            </nav>
+            {privateKey == "" ? (
+              <div>
+                <span className="block text-grey-800 font-semibold mx-5 my-2">LOGIN WITH WALLET</span>
+                <nav className="flex flex-wrap p-8 text-center mx-auto w-auto bg-base-300 rounded-lg mb-8 gap-4">
+                  <input
+                    type="text"
+                    className="input input-primary mr-2 md:mr-4 lg:mr-6"
+                    id="username"
+                    placeholder="Username"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                  />
+                  <input
+                    type="password"
+                    className="input input-primary  mr-2 md:mr-4 lg:mr-6"
+                    id="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                  />
+                  <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={handleGenerateKeys}>
+                    Generate Keypair
+                  </label>
+                </nav>
+                <span className="block text-grey-800 font-semibold mx-5 my-2">LOGIN WITH KEYPAIR</span>
+                <nav className="flex flex-wrap p-8 gap-4 text-center mx-auto w-auto bg-base-300 rounded-lg my-2 gap-4">
+                  <input
+                    type="text"
+                    className="input input-primary mr-2 md:mr-4 lg:mr-6 "
+                    id="username"
+                    placeholder="PublicKey"
+                    value={publicKey}
+                    onChange={e => setPublicKey(e.target.value)}
+                  />
+                  <input
+                    type="password"
+                    className="input input-primary  mr-2 md:mr-4 lg:mr-6 "
+                    id="password"
+                    placeholder="PrivateKey"
+                    value={privateKey}
+                    onChange={e => setPrivateKey(e.target.value)}
+                  />
+                  <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6 " onClick={handleConnectWithKeyPair}>
+                    Login with keyPair
+                  </label>
+                  <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6 " onClick={handleConnectExtension}>
+                    Login With extension
+                  </label>
+                  <label className="btn btn-ghost mr-2 md:mr-4 lg:mr-6 " onClick={handleGenerateRandomKeys}>
+                    Generate Random
+                  </label>
+                </nav>
+              </div>
+            ) : null}
             {connected ? (
               <p className="mb-4 text-bold text-xl text-success">📡 Connected</p>
             ) : (
@@ -837,72 +913,9 @@ const Login: NextPage = () => {
               >
                 Relay
               </button>
-              <button className="btn btn-ghost mr-2 md:mr-4 lg:mr-6" onClick={() => openTipModal()}>
-                Tip
-              </button>
-              <dialog id="tip_modal" className="modal">
-                <div className="modal-box">
-                  <input
-                    type="text"
-                    value={pubKeyReceiver}
-                    onChange={event => setPubKeyReceiver(event.target.value)}
-                    className="input input-primary w-full mb-4"
-                    placeholder="Public Key Receiver"
-                  />
-                  <input
-                    type="text"
-                    onChange={event => setAmountToTip(event.target.value)}
-                    className="input input-primary w-full mb-2"
-                    placeholder="Amount to tip"
-                  />
-                  <button
-                    className="btn btn-primary"
-                    onClick={async () => {
-                      const receiver = await handleSearchFromEVMtoRelay(pubKeyReceiver);
-                      if (receiver) {
-                        await handleTip(receiver);
-                      } else {
-                        notification.error("Profile not registred");
-                      }
-                    }}
-                  >
-                    Send
-                  </button>
-                  <div className="modal-action">
-                    <form method="dialog">
-                      {/* if there is a button in form, it will close the modal */}
-                      <button className="btn">Close</button>
-                    </form>
-                  </div>
-                </div>
-              </dialog>
               <dialog id="relay_modal" className="modal">
                 <div className="modal-box">
                   <h1 className="text-3xl font-thin mb-4">RELAY</h1>
-                  {/* <label className="block mb-4">
-					<select
-					  className="select select-bordered w-full mb-2 my-2"
-					  value={relayURL}
-					  onChange={e => setRelayURL(String(e.target.value))}
-					>
-					  {relayList.map(relay => (
-						<option key={relay} value={relay}>
-						  {relay}
-						</option>
-					  ))}
-					</select>
-				  </label> */}
-                  {/* <button
-					className=" w-full  btn btn-primary mb-5"
-					onClick={() => {
-					  const relay_modal = document.getElementById("relay_modal") as HTMLDialogElement;
-					  if (relay_modal) relay_modal;
-
-					  handleConnectRelay();
-					}}
-				  >
-					Connect Relays
-				  </button> */}
                   <button
                     className=" w-full  btn btn-primary mb-5"
                     onClick={() => {
@@ -933,152 +946,63 @@ const Login: NextPage = () => {
                   </div>
                 </div>
               </dialog>{" "}
-              <button
-                className="btn btn-ghost mr-2 md:mr-4 lg:mr-6"
-                onClick={() => {
-                  const profile_modal = document.getElementById("Update_profile_modal") as HTMLDialogElement;
-                  if (profile_modal) profile_modal.showModal();
-                }}
-              >
-                profile
-              </button>
-              <dialog id="Update_profile_modal" className="modal">
-                <div className="modal-box">
-                  <h1 className="text-3xl font-thin mt-10">UPDATE PROFILE</h1>
-                  <div className="min-w-full">
-                    <input
-                      className="input input-bordered w-full mb-2"
-                      type="text"
-                      value={metadata.name}
-                      onChange={e => updateMetadata("name", e.target.value)}
-                      placeholder="UserName"
-                    />
-                    <input
-                      className="input input-bordered w-full mb-2"
-                      type="text"
-                      value={metadata.display_name}
-                      onChange={e => updateMetadata("display_name", e.target.value)}
-                      placeholder="Display Name"
-                    />
-                    <input
-                      className="input input-bordered w-full mb-2"
-                      type="text"
-                      value={metadata.website}
-                      onChange={e => updateMetadata("website", e.target.value)}
-                      placeholder="WebSite"
-                    />
-                    <input
-                      className="input input-bordered w-full mb-2"
-                      type="text"
-                      value={metadata.about}
-                      onChange={e => updateMetadata("about", e.target.value)}
-                      placeholder="About Me"
-                    />
-                    <input
-                      className="input input-bordered w-full mb-2"
-                      type="text"
-                      value={metadata.picture}
-                      onChange={e => updateMetadata("picture", e.target.value)}
-                      placeholder="Picture Link"
-                    />
-                    {
-                      <input
-                        className="input input-bordered w-full mb-2"
-                        type="text"
-                        value={metadata.image}
-                        onChange={e => updateMetadata("image", e.target.value)}
-                        placeholder="Image Link"
-                      />
-                    }
-                    <input
-                      className="input input-bordered w-full mb-2"
-                      type="text"
-                      value={metadata.banner}
-                      onChange={e => updateMetadata("banner", e.target.value)}
-                      placeholder="Banner Link"
-                    />
-                    <input
-                      className="input input-bordered w-full mb-2"
-                      type="text"
-                      value={metadata.nip05}
-                      onChange={e => updateMetadata("nip05", e.target.value)}
-                      placeholder="NIP05"
-                    />
-                    <input
-                      className="input input-bordered w-full mb-2"
-                      type="text"
-                      value={metadata.lud06}
-                      onChange={e => updateMetadata("lud06", e.target.value)}
-                      placeholder="LUD06"
-                    />
-                    <input
-                      className="input input-bordered w-full mb-2"
-                      type="text"
-                      value={metadata.lid16}
-                      onChange={e => updateMetadata("lid16", e.target.value)}
-                      placeholder="LUD16"
-                    />
-                    <input
-                      className="input input-bordered w-full mb-2"
-                      type="text"
-                      value={metadata.mastodonUrl}
-                      onChange={e => updateMetadata("mastodonUrl", e.target.value)}
-                      placeholder="Mastodon URL"
-                    />
-                    <button
-                      className="w-full  btn btn-primary my-5"
-                      onClick={() => {
-                        const close_modal = document.getElementById("Update_profile_modal") as HTMLDialogElement;
-                        if (close_modal) close_modal.close();
-
-                        handleChangeMetadata();
-                      }}
-                    >
-                      Update
-                    </button>
-                  </div>
-                  <div className="modal-action">
-                    <form method="dialog">
-                      {/* if there is a button in form, it will close the modal */}
-                      <button className="btn">Close</button>
-                    </form>
-                  </div>
-                </div>
-              </dialog>
             </nav>
             {event && event.created && (
               <div className="bg-success p-5 text-black rounded-md mb-4">
                 <h2 className="text-2xl mb-2">🎉 Posted!</h2>
-                {/* <p className="mb-2">ID: {event.created.id}</p>
-				<p className="mb-2">From: {event.created.pubkey}</p> */}
                 <p className="mb-2 text-lg font-medium">{event.created.content}</p>
               </div>
             )}
             <div>
-              {pubKeyEthAddressList && (
-                <div className="bg-base-100  text-base-content rounded-md mb-4 p-10 break-all">
-                  <h2 className="text-2xl mb-5">🎉 PubKey and EVM Address</h2>
-                  <ul className="list-disc">
-                    {pubKeyEthAddressList.map((item: any) => (
-                      <li key={item} className="text-lg font-medium">
-                        <span className="font-bold text-primary">
-                          <Link href={`https://njump.me/${item.npub}`} target="_blank">
-                            {" "}
-                            {item.npub}
-                          </Link>
-                        </span>{" "}
-                        :{" "}
-                        <button
-                          className="btn btn-ghost mr-2 md:mr-4 lg:mr-6"
-                          onClick={() => {
-                            openTipModal(), setPubKeyReceiver(item.pubkey);
-                          }}
-                        >
-                          {item.evmAddress}{" "}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+              {filteredPubKeyEthAddressList && (
+                <div className="bg-base-100 text-base-content rounded-md mb-4 p-10 break-all">
+                  <h2 className="block font-semibold text-4xl mb-5">NOSTR3 ACCOUNTS</h2>
+                  <input
+                    type="text"
+                    placeholder="Search by Nostr Public Key..."
+                    className="input input-bordered w-full mb-4"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                  />
+                  <table className="table-auto w-full">
+                    <thead>
+                      <tr>
+                        <th className="px-4 py-2">Nostr Public Key</th>
+                        <th className="px-4 py-2">EVM Address</th>
+                        <th className="px-4 py-2">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredPubKeyEthAddressList.map((item: any, index: any) => (
+                        <tr key={index}>
+                          <td className="border px-4 py-2">
+                            <div className="lg:tooltip" data-tip={item.npub}>
+                              <Link href={`https://njump.me/${item.npub}`} target="_blank">
+                                {item.npub.slice(0, 10)}
+                              </Link>
+                            </div>
+                          </td>
+
+                          <td className="border px-4 py-2">
+                            <div className="lg:tooltip" data-tip={item.evmAddress}>
+                              {item.evmAddress.slice(0, 10)}
+                            </div>
+                          </td>
+
+                          <td className="border px-2 py-2">
+                            <button
+                              className="btn btn-ghost"
+                              onClick={() => {
+                                openTipModal(), setPubKeyReceiver(item.pubkey);
+                              }}
+                            >
+                              TIP
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -1087,6 +1011,54 @@ const Login: NextPage = () => {
           <div className="font-black m-5">Connect your wallet</div>
         )}
       </div>
+      <dialog id="tip_modal" className="modal bg-gradient-to-br from-primary to-secondary">
+        <div className="modal-box">
+          <div className="flex flex-col font-black text-2xl mb-4 mx-auto items-center justify-center">TIP</div>
+
+          <input
+            type="text"
+            value={eventId}
+            onChange={event => setEventId(event.target.value)}
+            className="input input-primary w-full mb-4"
+            placeholder="Note ID"
+          />
+          <input
+            type="text"
+            value={pubKeyReceiver}
+            onChange={event => setPubKeyReceiver(event.target.value)}
+            className="input input-primary w-full mb-4"
+            placeholder="Public Key Receiver"
+          />
+          <input
+            type="text"
+            onChange={event => setAmountToTip(event.target.value)}
+            className="input input-primary w-full mb-2"
+            placeholder="Amount to tip"
+          />
+          <button
+            className="btn btn-primary mt-4"
+            onClick={async () => {
+              const receiver = pubKeyEthAddressList.find(
+                (item: { pubkey: string }) => item.pubkey === pubKeyReceiver,
+              )?.evmAddress;
+              setEvmAddress(evmAddress);
+              if (receiver) {
+                await handleTip(receiver);
+              } else {
+                notification.error("Profile not registred");
+              }
+            }}
+          >
+            Send
+          </button>
+          <div className="modal-action">
+            <form method="dialog">
+              {/* if there is a button in form, it will close the modal */}
+              <button className="btn">Close</button>
+            </form>
+          </div>
+        </div>
+      </dialog>
     </div>
   );
 };
