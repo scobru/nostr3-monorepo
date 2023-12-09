@@ -11,11 +11,11 @@ Nost3 aims to extend the capabilities of the Nostr protocol by incorporating Web
 
 ## PACKAGES
 
-    we build nostr3 npm package to provide the signature used to generate the keypair, you can find the reppo here https://github.com/scobru/nostr3 or you can install @scobru/nostr3.
+we build nostr3 npm package to provide the signature used to generate the keypair, you can find the reppo here <https://github.com/scobru/nostr3> or you can install @scobru/nostr3.
 
 ## NIPS
 
-    - NIP-111 : https://github.com/nostr-protocol/nips/pull/268
+- NIP-111 : <https://github.com/nostr-protocol/nips/pull/268>
 
 ## API Section
 
