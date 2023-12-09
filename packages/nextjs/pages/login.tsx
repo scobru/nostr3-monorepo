@@ -121,7 +121,7 @@ const Login: NextPage = () => {
 
   const ProfileDetailsBox = () => {
     return (
-      <div className="profile-details-box bg-base rounded-ms p-5 my-10 flex flex-col items-center text-center w-3/8">
+      <div className="profile-details-box bg-base-100 rounded-md p-5 my-10 flex flex-col items-center text-center">
         {profileDetails && profileDetails.display_name && (
           <div>
             {profileDetails.picture && (
@@ -864,8 +864,8 @@ const Login: NextPage = () => {
                     Generate Keypair
                   </label>
                 </nav>
-                <span className="block text-grey-800 font-semibold mx-5 my-2">LOGIN WITH KEYPAIR</span>
-                <nav className="flex flex-wrap p-8 gap-4 text-center mx-auto w-auto bg-base-300 rounded-lg my-2 gap-4">
+                <span className="block text-grey-800 font-semibold mx-5 my-2">LOGIN WITH NOS2x OR KEYPAIR</span>
+                <nav className="flex flex-wrap p-8 gap-4 text-center mx-auto w-auto bg-base-300 rounded-lg my-2">
                   <input
                     type="text"
                     className="input input-primary mr-2 md:mr-4 lg:mr-6 "
