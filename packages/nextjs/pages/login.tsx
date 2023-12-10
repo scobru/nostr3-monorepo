@@ -22,12 +22,27 @@ import { nip05 } from "nostr-tools";
 import { ProfilePointer } from "nostr-tools/lib/types/nip19";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/blur.css";
-import { createWalletClient, http, isAddress, parseEther } from "viem";
+import {
+  Account,
+  createWalletClient,
+  encodeAbiParameters,
+  encodePacked,
+  http,
+  isAddress,
+  keccak256,
+  parseAbiParameters,
+  parseEther,
+  toBytes,
+} from "viem";
 import { toHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { optimism } from "viem/chains";
-import { useEnsName, usePublicClient, useWalletClient } from "wagmi";
+import { WalletClient, useEnsName, usePublicClient, useWalletClient } from "wagmi";
 import { AddressInput } from "~~/components/scaffold-eth";
+import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
+import { useScaffoldContractRead } from "~~/hooks/scaffold-eth";
+import { useScaffoldContract } from "~~/hooks/scaffold-eth";
+import { useTransactor } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import { notification } from "~~/utils/scaffold-eth";
 
@@ -93,6 +108,13 @@ const Login: NextPage = () => {
   const [isNostr3Account, setIsNostr3Account] = useState<boolean>(false);
   const [eventId, setEventId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const runTx = useTransactor(signer as WalletClient);
+  const [isSecretTip, setIsSecretTip] = useState("false");
+
+  const { data: nostr3ctx } = useScaffoldContract({
+    contractName: "Nostr3",
+    walletClient: signer,
+  });
 
   const openTipModal = () => {
     const tip_modal = document.getElementById("tip_modal") as HTMLDialogElement;
@@ -184,13 +206,13 @@ const Login: NextPage = () => {
           Link an EVM address to your Nostr account. You can change it any time.
         </span>
         {/* <input
-          type="text"
-          className="input input-primary my-5"
-          id="EvmAddress"
-          placeholder="Set Evm address"
-          value={evmAddress}
-          onChange={e => setEvmAddress(e.target.value)}
-        /> */}
+					type="text"
+					className="input input-base my-5"
+					id="EvmAddress"
+					placeholder="Set Evm address"
+					value={evmAddress}
+					onChange={e => setEvmAddress(e.target.value)}
+				/> */}
         <AddressInput onChange={e => setEvmAddress(e)} value={evmAddress} />
         {!isNostr3Account ? (
           <div>
@@ -292,7 +314,6 @@ const Login: NextPage = () => {
             pubkey: publicKey,
           };
         }
-
         if (!isExtension) {
           await publishEvent(newEvent as UnsignedEvent, privateKey);
         } else {
@@ -353,7 +374,7 @@ const Login: NextPage = () => {
 
       setPubKeyEthAddressList(result);
 
-      //setNostr3List(result);
+      console.log(result);
       useGlobalState.setState({ nostr3List: result });
 
       return result;
@@ -366,72 +387,72 @@ const Login: NextPage = () => {
   };
 
   /* const handleSearchFromEVMtoRelay = async (pubKey: string) => {
-    await handleConnectRelay();
-    const events = await relay.list([{ kinds: [30078], authors: [pubKey] }]);
-    if (events.length === 0) return null;
-    setEvmAddressReceiver(events[0].content);
-    return events[0].content;
-  }; */
+      await handleConnectRelay();
+      const events = await relay.list([{ kinds: [30078], authors: [pubKey] }]);
+      if (events.length === 0) return null;
+      setEvmAddressReceiver(events[0].content);
+      return events[0].content;
+    }; */
 
   /* const handleListAllPubkeyAndEthAddress = async () => {
-    const _events = await relay.list([{ kinds: [30078], tags: [["d", "nostr3"]] }]);
-    console.log("Events", _events);
-    // sort event by date recent
-    const _eventsSort = _events.sort(
-      (a: { created_at: number }, b: { created_at: number }) => b.created_at - a.created_at,
-    );
-    //if (events.length === 0) return null;
-    const eventResult: { pubkey: string; npub: string; evmAddress: string }[] = [];
-    // create a paggin with event.content and event.pubkey
-    _eventsSort.map((event: Event) => {
-      // only event.content start with 0x
-      if (event.kind != 30078) return null;
-      if (event.content.slice(0, 2) !== "0x") return null;
-      eventResult.push({ pubkey: event.pubkey, npub: nip19.npubEncode(event.pubkey), evmAddress: event.content });
-
-      // set global state
-    });
-
-    useGlobalState.setState({ nostr3List: eventResult });
-    setPubKeyEthAddressList(eventResult);
-    return eventResult;
-  }; */
+      const _events = await relay.list([{ kinds: [30078], tags: [["d", "nostr3"]] }]);
+      console.log("Events", _events);
+      // sort event by date recent
+      const _eventsSort = _events.sort(
+        (a: { created_at: number }, b: { created_at: number }) => b.created_at - a.created_at,
+      );
+      //if (events.length === 0) return null;
+      const eventResult: { pubkey: string; npub: string; evmAddress: string }[] = [];
+      // create a paggin with event.content and event.pubkey
+      _eventsSort.map((event: Event) => {
+        // only event.content start with 0x
+        if (event.kind != 30078) return null;
+        if (event.content.slice(0, 2) !== "0x") return null;
+        eventResult.push({ pubkey: event.pubkey, npub: nip19.npubEncode(event.pubkey), evmAddress: event.content });
+  
+        // set global state
+      });
+  
+      useGlobalState.setState({ nostr3List: eventResult });
+      setPubKeyEthAddressList(eventResult);
+      return eventResult;
+    }; */
 
   /* function getPublicKeyFromSecret(
-    secretKey: WithImplicitCoercion<string> | { [Symbol.toPrimitive](hint: "string"): string },
-  ) {
-    const pk = secp256k1.getPublicKey(Buffer.from(secretKey, "hex"), false).slice(1);
-    return pk;
-  }
-
-  function doesNostrKeyCorrespondToEthereumAddress(
-    nostrPubKeyArray: WithImplicitCoercion<ArrayBuffer | SharedArrayBuffer>,
-    ethAddress: string,
-  ) {
-    // Convert decimal array to Buffer
-    const nostrPubKey = Buffer.from(nostrPubKeyArray);
-
-    ethAddress = ethAddress.toLowerCase().replace("0x", "");
-
-    for (const prefix of ["0x02", "0x03"]) {
-      const pkBytes = Buffer.concat([Buffer.from(prefix, "hex"), nostrPubKey]);
-      if (pkBytes.length !== 33) continue; // Ensure correct length for publicKeyConvert
-
-      try {
-        const uncompressed = secp256k1.getPublicKey(pkBytes, false);
-        const hash = sha3.keccak256.array(uncompressed.slice(1));
-        const resH = Buffer.from(hash).toString("hex");
-
-        if (resH.slice(24) === ethAddress) {
-          return true;
-        }
-      } catch (err) {
-        // Handle or log the error as needed
-        continue;
-      }
+      secretKey: WithImplicitCoercion<string> | { [Symbol.toPrimitive](hint: "string"): string },
+    ) {
+      const pk = secp256k1.getPublicKey(Buffer.from(secretKey, "hex"), false).slice(1);
+      return pk;
     }
-    return false;
-  }*/
+  
+    function doesNostrKeyCorrespondToEthereumAddress(
+      nostrPubKeyArray: WithImplicitCoercion<ArrayBuffer | SharedArrayBuffer>,
+      ethAddress: string,
+    ) {
+      // Convert decimal array to Buffer
+      const nostrPubKey = Buffer.from(nostrPubKeyArray);
+  
+      ethAddress = ethAddress.toLowerCase().replace("0x", "");
+  
+      for (const prefix of ["0x02", "0x03"]) {
+        const pkBytes = Buffer.concat([Buffer.from(prefix, "hex"), nostrPubKey]);
+        if (pkBytes.length !== 33) continue; // Ensure correct length for publicKeyConvert
+  
+        try {
+          const uncompressed = secp256k1.getPublicKey(pkBytes, false);
+          const hash = sha3.keccak256.array(uncompressed.slice(1));
+          const resH = Buffer.from(hash).toString("hex");
+  
+          if (resH.slice(24) === ethAddress) {
+            return true;
+          }
+        } catch (err) {
+          // Handle or log the error as needed
+          continue;
+        }
+      }
+      return false;
+    }*/
 
   const handleSearchFromPubkey = async (pubKey: string) => {
     const wallet = createWalletClient({
@@ -586,11 +607,12 @@ const Login: NextPage = () => {
         (item: { pubkey: string }) => item.pubkey === globalNostrKeys.pub,
       );
       setIsNostr3Account(isNostr3Account);
-    } else if (nostrKeys) {
+    }
+    if (isExtension) {
       const isNostr3Account = pubKeyEthAddressList.some((item: { pubkey: string }) => item.pubkey === nostrKeys.pub);
       setIsNostr3Account(isNostr3Account);
     }
-  }, [nostrKeys]);
+  }, [signer, pubKeyEthAddressList]);
 
   useEffect(() => {
     if (relay && relay.status == 3) {
@@ -697,7 +719,9 @@ const Login: NextPage = () => {
   const handleSignIn = async () => {
     const id = notification.loading("Process");
     if (!isExtension) {
-      await fetch("/api/store", {
+      await handleRegisterEVM(nostrKeys);
+
+      const response = await fetch("/api/store", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -708,11 +732,18 @@ const Login: NextPage = () => {
         }),
       });
 
-      await handleRegisterEVM(nostrKeys);
+      if (response.ok) {
+        const resultData = await response.json();
+        console.log(resultData);
+        notification.success("Stored");
+      } else {
+        console.error("Server response was not OK:", response.status);
+        notification.error("Error storing data");
+      }
     } else {
       await handleRegisterEVMExtension();
 
-      await fetch("/api/store", {
+      const response = await fetch("/api/store", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -722,6 +753,15 @@ const Login: NextPage = () => {
           pubKey: publicKey,
         }),
       });
+
+      if (response.ok) {
+        const resultData = await response.json();
+        console.log(resultData);
+        notification.success("Stored");
+      } else {
+        console.error("Server response was not OK:", response.status);
+        notification.error("Error storing data");
+      }
     }
     notification.remove(id);
     notification.success("Send");
@@ -787,6 +827,9 @@ const Login: NextPage = () => {
       transport: http(),
     });
 
+    notification.remove(loading);
+    notification.success("Key Pair Created and Stored");
+
     setWallet(newWallet);
     setEvmAddress(await newWallet?.account?.address);
     setIsExtension(false);
@@ -839,14 +882,14 @@ const Login: NextPage = () => {
     <div className="flex items-center flex-col flex-grow pt-10 w-full sm:w-4/5 md:w-3/4 lg:w-3/6 mx-auto">
       <div className="w-full">
         {signer?.account ? (
-          <div className="m-5  mx-auto w-5/6">
+          <div className="m-5 mx-auto w-5/6">
             {privateKey == "" ? (
               <div>
-                <span className="block text-grey-800 font-semibold mx-5 my-2">LOGIN WITH WALLET</span>
-                <nav className="flex flex-wrap p-8 text-center mx-auto w-auto bg-base-300 rounded-lg mb-8 gap-4">
+                <span className="block  font-semibold mx-5 mb-5">LOGIN WITH WALLET</span>
+                <nav className="flex flex-wrap p-8 text-center mx-auto w-auto bg-base-300 border border-gray-500 shadow-gray-400 shadow-sm rounded-lg mb-8 gap-4">
                   <input
                     type="text"
-                    className="input input-primary mr-2 md:mr-4 lg:mr-6"
+                    className="input input-base mr-2 md:mr-4 lg:mr-6"
                     id="username"
                     placeholder="Username"
                     value={username}
@@ -854,7 +897,7 @@ const Login: NextPage = () => {
                   />
                   <input
                     type="password"
-                    className="input input-primary  mr-2 md:mr-4 lg:mr-6"
+                    className="input input-base  mr-2 md:mr-4 lg:mr-6"
                     id="password"
                     placeholder="Password"
                     value={password}
@@ -864,11 +907,11 @@ const Login: NextPage = () => {
                     Generate Keypair
                   </label>
                 </nav>
-                <span className="block text-grey-800 font-semibold mx-5 my-2">LOGIN WITH NOS2x OR KEYPAIR</span>
-                <nav className="flex flex-wrap p-8 gap-4 text-center mx-auto w-auto bg-base-300 rounded-lg my-2">
+                <span className="block text-grey-800 font-semibold mx-5 mb-5 mt-10">LOGIN WITH NOS2x OR KEYPAIR</span>
+                <nav className="flex flex-wrap p-8 gap-4 text-center mx-auto w-auto bg-base-300 border border-gray-500 shadow-gray-400 shadow-sm rounded-lg my-2">
                   <input
                     type="text"
-                    className="input input-primary mr-2 md:mr-4 lg:mr-6 "
+                    className="input input-base mr-2 md:mr-4 lg:mr-6 "
                     id="username"
                     placeholder="PublicKey"
                     value={publicKey}
@@ -876,7 +919,7 @@ const Login: NextPage = () => {
                   />
                   <input
                     type="password"
-                    className="input input-primary  mr-2 md:mr-4 lg:mr-6 "
+                    className="input input-base  mr-2 md:mr-4 lg:mr-6 "
                     id="password"
                     placeholder="PrivateKey"
                     value={privateKey}
@@ -895,9 +938,9 @@ const Login: NextPage = () => {
               </div>
             ) : null}
             {connected ? (
-              <p className="mb-4 text-bold text-xl text-success">📡 Connected</p>
+              <p className="mb-4 text-bold text-xl text-success mt-10">📡 Connected</p>
             ) : (
-              <p className="mb-4 text-bold text-xl text-success">Not Connected</p>
+              <p className="mb-4 text-bold text-xl text-success mt-10">Not Connected</p>
             )}
             <ProfileDetailsBox />
             <nav className="flex flex-wrap p-4">
@@ -1014,38 +1057,68 @@ const Login: NextPage = () => {
       <dialog id="tip_modal" className="modal bg-gradient-to-br from-primary to-secondary">
         <div className="modal-box">
           <div className="flex flex-col font-black text-2xl mb-4 mx-auto items-center justify-center">TIP</div>
-
+          <input
+            type="checkbox"
+            name="secret_tip"
+            id="isSecretTip"
+            onClick={e => {
+              setIsSecretTip(e.target.checked);
+            }}
+          />
           <input
             type="text"
             value={eventId}
             onChange={event => setEventId(event.target.value)}
-            className="input input-primary w-full mb-4"
+            className="input input-base w-full mb-4"
             placeholder="Note ID"
           />
           <input
             type="text"
             value={pubKeyReceiver}
             onChange={event => setPubKeyReceiver(event.target.value)}
-            className="input input-primary w-full mb-4"
+            className="input input-base w-full mb-4"
             placeholder="Public Key Receiver"
           />
           <input
             type="text"
             onChange={event => setAmountToTip(event.target.value)}
-            className="input input-primary w-full mb-2"
+            className="input input-base w-full mb-2"
             placeholder="Amount to tip"
           />
           <button
             className="btn btn-primary mt-4"
             onClick={async () => {
-              const receiver = pubKeyEthAddressList.find(
-                (item: { pubkey: string }) => item.pubkey === pubKeyReceiver,
-              )?.evmAddress;
-              setEvmAddress(evmAddress);
-              if (receiver) {
-                await handleTip(receiver);
+              if (!isSecretTip) {
+                const receiver = pubKeyEthAddressList.find(
+                  (item: { pubkey: string }) => item.pubkey === pubKeyReceiver,
+                )?.evmAddress;
+                setEvmAddress(evmAddress);
+                if (receiver) {
+                  await handleTip(receiver);
+                } else {
+                  notification.error("Profile not registred");
+                }
               } else {
-                notification.error("Profile not registred");
+                const key = encodeAbiParameters(parseAbiParameters("string, string, string"), [
+                  publicKey,
+                  pubKeyReceiver,
+                  eventId,
+                ]);
+
+                // Send message with key encryted to the npub
+                newEvent = {
+                  kind: 4,
+                  created_at: Math.floor(Date.now() / 1000),
+                  tags: [
+                    ["p", pubKeyReceiver],
+                  ],
+                  content: message,
+                  pubkey: publicKey,
+                };
+
+                // Deposit on the contract with HASH
+                const hash = keccak256(key);
+
               }
             }}
           >

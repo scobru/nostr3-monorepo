@@ -6,7 +6,7 @@ const Home: NextPage = () => {
   return (
     <div className="flex items-center flex-col flex-grow pt-10 w-full sm:w-4/5 md:w-3/4 lg:w-3/6 mx-auto">
       <MetaHeader />
-      
+
       <div className="w-full">
         <Image className="mb-12 mx-auto" src="/assets/nostr3.png" width={400} height={400} alt="nostr3"></Image>
         <div className="m-5  mx-auto w-5/6">
