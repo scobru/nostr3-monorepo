@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   10: {
     Nostr3: {
-      address: "0x9cf29F3172c7CA146686a4A7039D23F5f63d4B7b",
+      address: "0x21f5C4f2a0898Aa3EaFfdcb644dFeF30e95cC359",
       abi: [
         {
           inputs: [],
@@ -16,7 +16,7 @@ const deployedContracts = {
         },
         {
           inputs: [],
-          name: "FEE_PERCENTAGE",
+          name: "FEE",
           outputs: [
             {
               internalType: "uint256",
@@ -25,6 +25,19 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "newFee",
+              type: "uint256",
+            },
+          ],
+          name: "changeFEE",
+          outputs: [],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {
