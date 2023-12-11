@@ -1,10 +1,13 @@
+/* eslint-disable react/no-unescaped-entities */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { hkdf } from "@noble/hashes/hkdf";
 import { sha256 } from "@noble/hashes/sha256";
 import * as secp256k1 from "@noble/secp256k1";
+import * as secp from "@noble/secp256k1";
 import { Nostr3 } from "@scobru/nostr3";
+import crypto from "crypto";
 import sha3 from "js-sha3";
 import type { NextPage } from "next";
 import {
@@ -14,8 +17,8 @@ import {
   generatePrivateKey,
   getEventHash,
   getPublicKey,
+  getSignature,
   relayInit,
-  signEvent,
 } from "nostr-tools";
 import { nip19 } from "nostr-tools";
 import { nip05 } from "nostr-tools";
@@ -23,37 +26,29 @@ import { ProfilePointer } from "nostr-tools/lib/types/nip19";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/blur.css";
 import {
-  Account,
   createWalletClient,
-  encodeAbiParameters,
-  encodePacked,
   http,
   isAddress,
   keccak256,
-  parseAbiParameters,
-  parseEther,
-  toBytes,
+  parseEther
 } from "viem";
 import { toHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { optimism } from "viem/chains";
 import { WalletClient, useEnsName, usePublicClient, useWalletClient } from "wagmi";
 import { AddressInput } from "~~/components/scaffold-eth";
-import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
-import { useScaffoldContractRead } from "~~/hooks/scaffold-eth";
 import { useScaffoldContract } from "~~/hooks/scaffold-eth";
 import { useTransactor } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import { notification } from "~~/utils/scaffold-eth";
-import crypto from 'crypto'
-import * as secp from '@noble/secp256k1'
-
+import { encodeAbiParameters, parseAbiParameters } from 'viem'
 
 declare global {
   interface Window {
     nostr: {
       getPublicKey: () => Promise<any>;
       signEvent: (event: any) => Promise<any>;
+      encrypt: any;
     };
   }
 }
@@ -68,7 +63,7 @@ const Login: NextPage = () => {
   const [publicKey, setPublicKey] = useState("");
   const [nostrPublicKey, setNostrPublicKey] = useState("");
   const [event, setEvent] = useState<any>(null);
-  const [relayURL, setRelayURL] = useState("wss://relay.damus.io"); // Replace with a real relay URL
+  const [relayURL, setRelayURL] = useState("wss://relay.primal.net"); // Replace with a real relay URL
   const [relay, setRelay] = useState<any>(null);
   const [showKeys, setShowKeys] = useState(false);
   const [wallet, setWallet] = useState<any>(null);
@@ -257,7 +252,7 @@ const Login: NextPage = () => {
 
   const createEvent = (unsignedEvent: UnsignedEvent, _sk: string): Event => {
     const eventHash = getEventHash(unsignedEvent);
-    const signature = signEvent(unsignedEvent, _sk);
+    const signature = getSignature(unsignedEvent, _sk);
     return {
       ...unsignedEvent,
       id: eventHash,
@@ -274,6 +269,7 @@ const Login: NextPage = () => {
     let message;
     let newEvent;
 
+    console.log("Tipping")
     try {
       const txResponse = await signer?.sendTransaction({
         to: receiver,
@@ -830,7 +826,6 @@ const Login: NextPage = () => {
       transport: http(),
     });
 
-    notification.remove(loading);
     notification.success("Key Pair Created and Stored");
 
     setWallet(newWallet);
@@ -880,6 +875,17 @@ const Login: NextPage = () => {
   const filteredPubKeyEthAddressList = searchTerm
     ? pubKeyEthAddressList.filter(item => item.npub.toLowerCase().includes(searchTerm.toLowerCase()))
     : pubKeyEthAddressList;
+
+  function generateRandomPassword(maxLength = 20) {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+';
+    let password = '';
+
+    for (let i = 0; i < maxLength; i++) {
+      password += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+
+    return password;
+  }
 
   return (
     <div className="flex items-center flex-col flex-grow pt-10 w-full sm:w-4/5 md:w-3/4 lg:w-3/6 mx-auto">
@@ -967,7 +973,7 @@ const Login: NextPage = () => {
                     onClick={() => {
                       const relay_modal = document.getElementById("relay_modal") as HTMLDialogElement;
                       if (relay_modal) relay_modal;
-                      setRelayURL("wss://relay.damus.io");
+                      setRelayURL("wss://relay.primal.net");
                       handleConnectRelay();
                     }}
                   >
@@ -1054,7 +1060,9 @@ const Login: NextPage = () => {
             </div>
           </div>
         ) : (
-          <div className="font-black m-5">Connect your wallet</div>
+          <div className="flex flex-col mx-auto">
+            <div className="font-black m-5 ">Connect your wallet</div>
+          </div>
         )}
       </div>
       <dialog id="tip_modal" className="modal bg-gradient-to-br from-primary to-secondary">
@@ -1064,10 +1072,12 @@ const Login: NextPage = () => {
             type="checkbox"
             name="secret_tip"
             id="isSecretTip"
+            placeholder="Secret"
             onClick={e => {
               setIsSecretTip(e.target.checked);
             }}
-          />
+          />{" "}
+          Check this if you don't know if the pubkey receiver is registred to nostr3.
           <input
             type="text"
             value={eventId}
@@ -1092,9 +1102,11 @@ const Login: NextPage = () => {
             className="btn btn-primary mt-4"
             onClick={async () => {
               if (!isSecretTip) {
+                const decodedPubKey = await nip19.decode(pubKeyReceiver);
                 const receiver = pubKeyEthAddressList.find(
-                  (item: { pubkey: string }) => item.pubkey === pubKeyReceiver,
+                  (item: { pubkey: string }) => item.pubkey === decodedPubKey.data,
                 )?.evmAddress;
+                console.log(receiver, evmAddress)
                 setEvmAddress(evmAddress);
                 if (receiver) {
                   await handleTip(receiver);
@@ -1102,17 +1114,39 @@ const Login: NextPage = () => {
                   notification.error("Profile not registred");
                 }
               } else {
-                const key = encodeAbiParameters(parseAbiParameters("string, string, string"), [
-                  publicKey,
-                  pubKeyReceiver,
-                  eventId,
-                ]);
+                const key = generateRandomPassword()
+
                 if (!isExtension) {
+                  console.log("Not Extension");
                   const nostr3 = new Nostr3(privateKey);
-                  const message = `Tip ${amountToTip} ETH to ${pubKeyReceiver}. Use this key to retrive your tip: ${key}`;
-                  const encrypted = await nostr3.encryptDM(message, pubKeyReceiver);
+                  const message = `Tip ${amountToTip} OPETH to ${pubKeyReceiver}. Go to https://nostr3.vercel.app/claim and use this key to retrive your tip: ${key}`;
+                  const decodedPubKey = await nip19.decode(pubKeyReceiver);
+                  const encrypted = await nostr3.encryptDM(message, String(decodedPubKey.data));
 
                   // Send message with key encryted to the npub
+                  const newEvent = {
+                    kind: 4,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [["p", String(decodedPubKey.data)]],
+                    content: String(encrypted),
+                    pubkey: publicKey,
+                  };
+
+                  const encoded = encodeAbiParameters(
+                    parseAbiParameters('string'),
+                    [key]
+                  )
+
+                  // Deposit on the contract with HASH
+                  const hash = keccak256(encoded);
+
+                  await nostr3ctx?.write?.deposit([hash], { value: parseEther(amountToTip) });
+                  const publish = await publishEvent(newEvent as UnsignedEvent, privateKey);
+                  console.log(publish)
+                } else {
+                  const message = `Tip ${amountToTip} ETH to ${pubKeyReceiver}. Use this key to retrive your tip: ${key}`;
+                  const decodedPubKey = await nip19.decode(pubKeyReceiver);
+                  const encrypted = await window.nostr.nip04.encrypt(decodedPubKey, message);
                   const newEvent = {
                     kind: 4,
                     created_at: Math.floor(Date.now() / 1000),
@@ -1121,9 +1155,11 @@ const Login: NextPage = () => {
                     pubkey: publicKey,
                   };
 
-                  // Deposit on the contract with HASH
-                  const hash = keccak256(key);
-                  await nostr3.write.deposit([hash], { value: parseEther(amountToTip) });
+                  const hash = keccak256(String(key));
+                  await nostr3ctx?.write?.deposit([hash], { value: parseEther(String(amountToTip)) });
+
+                  const signedEvent = await window.nostr.signEvent(newEvent);
+                  await relay?.publish(signedEvent);
                 }
               }
             }}

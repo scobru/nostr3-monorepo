@@ -8,7 +8,8 @@ contract Nostr3 {
 	uint256 public fees;
 
 	uint256 public FEE = 1 wei;
-	uint256 constant MAX_FEE = 10 wei;
+	
+	uint256 constant MAX_FEE = 1000 wei;
 
 	constructor() {
 		owner = msg.sender;
