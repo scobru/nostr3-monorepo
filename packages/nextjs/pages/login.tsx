@@ -45,6 +45,9 @@ import { useScaffoldContract } from "~~/hooks/scaffold-eth";
 import { useTransactor } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import { notification } from "~~/utils/scaffold-eth";
+import crypto from 'crypto'
+import * as secp from '@noble/secp256k1'
+
 
 declare global {
   interface Window {
@@ -1104,21 +1107,24 @@ const Login: NextPage = () => {
                   pubKeyReceiver,
                   eventId,
                 ]);
+                if (!isExtension) {
+                  const nostr3 = new Nostr3(privateKey);
+                  const message = `Tip ${amountToTip} ETH to ${pubKeyReceiver}. Use this key to retrive your tip: ${key}`;
+                  const encrypted = await nostr3.encryptDM(message, pubKeyReceiver);
 
-                // Send message with key encryted to the npub
-                newEvent = {
-                  kind: 4,
-                  created_at: Math.floor(Date.now() / 1000),
-                  tags: [
-                    ["p", pubKeyReceiver],
-                  ],
-                  content: message,
-                  pubkey: publicKey,
-                };
+                  // Send message with key encryted to the npub
+                  const newEvent = {
+                    kind: 4,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [["p", pubKeyReceiver]],
+                    content: encrypted,
+                    pubkey: publicKey,
+                  };
 
-                // Deposit on the contract with HASH
-                const hash = keccak256(key);
-
+                  // Deposit on the contract with HASH
+                  const hash = keccak256(key);
+                  await nostr3.write.deposit([hash], { value: parseEther(amountToTip) });
+                }
               }
             }}
           >
