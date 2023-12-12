@@ -48,7 +48,7 @@ declare global {
     nostr: {
       getPublicKey: () => Promise<any>;
       signEvent: (event: any) => Promise<any>;
-      encrypt: any;
+      encrypt: (data: string, key: string) => Promise<any>;
     };
   }
 }
@@ -212,22 +212,22 @@ const Login: NextPage = () => {
 					onChange={e => setEvmAddress(e.target.value)}
 				/> */}
         <AddressInput onChange={e => setEvmAddress(e)} value={evmAddress} />
-        {!isNostr3Account ? (
-          <div>
-            <label className="btn btn-ghost  mr-2 md:mr-4 lg:mr-6 mt-5 bg-success text-black" onClick={handleSignIn}>
-              REGISTER
-            </label>
-          </div>
-        ) : (
-          <div>
-            <button
-              className="btn btn-ghost  mr-2 md:mr-4 lg:mr-6 mt-5 bg-success text-black"
-              onClick={() => openTipModal()}
-            >
-              Tip
-            </button>
-          </div>
-        )}
+
+        <div>
+          <label className="btn btn-base btn-md  mr-2 md:mr-4 lg:mr-6 mt-10 mb-10 " onClick={handleSignIn}>
+            JOIN
+          </label>
+        </div>
+
+        <div>
+          <button
+            className="btn btn-base btn-md  mr-2 md:mr-4 lg:mr-6 mt-10 mb-10 "
+            onClick={() => openTipModal()}
+          >
+            Tip
+          </button>
+        </div>
+
       </div>
     );
   };
@@ -716,8 +716,8 @@ const Login: NextPage = () => {
   };
 
   const handleSignIn = async () => {
-    const id = notification.loading("Process");
     if (!isExtension) {
+      const id = notification.loading("Process");
       await handleRegisterEVM(nostrKeys);
 
       const response = await fetch("/api/store", {
@@ -734,12 +734,16 @@ const Login: NextPage = () => {
       if (response.ok) {
         const resultData = await response.json();
         console.log(resultData);
+        notification.remove(id)
         notification.success("Stored");
       } else {
         console.error("Server response was not OK:", response.status);
+        notification.remove(id)
         notification.error("Error storing data");
       }
     } else {
+      const id = notification.loading("Process");
+
       await handleRegisterEVMExtension();
 
       const response = await fetch("/api/store", {
@@ -762,8 +766,7 @@ const Login: NextPage = () => {
         notification.error("Error storing data");
       }
     }
-    notification.remove(id);
-    notification.success("Send");
+
   };
 
   const handleGenerateRandomKeys = async () => {
@@ -895,7 +898,7 @@ const Login: NextPage = () => {
             {privateKey == "" ? (
               <div>
                 <span className="block  font-semibold mx-5 mb-5">LOGIN WITH WALLET</span>
-                <nav className="flex flex-wrap p-8 text-center mx-auto w-auto bg-base-300 border border-gray-500 shadow-gray-400 shadow-sm rounded-lg mb-8 gap-4">
+                <nav className="flex flex-wrap p-8 text-center mx-auto w-auto bg-base-300 border border-gray-500  rounded-lg mb-8 gap-4">
                   <input
                     type="text"
                     className="input input-base mr-2 md:mr-4 lg:mr-6"
@@ -917,7 +920,7 @@ const Login: NextPage = () => {
                   </label>
                 </nav>
                 <span className="block text-grey-800 font-semibold mx-5 mb-5 mt-10">LOGIN WITH NOS2x OR KEYPAIR</span>
-                <nav className="flex flex-wrap p-8 gap-4 text-center mx-auto w-auto bg-base-300 border border-gray-500 shadow-gray-400 shadow-sm rounded-lg my-2">
+                <nav className="flex flex-wrap p-8 gap-4 text-center mx-auto w-auto bg-base-300 border border-gray-500  rounded-lg my-2">
                   <input
                     type="text"
                     className="input input-base mr-2 md:mr-4 lg:mr-6 "
@@ -1060,7 +1063,7 @@ const Login: NextPage = () => {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col mx-auto">
+          <div className="flex flex-col mx-auto w-1/4">
             <div className="font-black m-5 ">Connect your wallet</div>
           </div>
         )}
@@ -1069,12 +1072,13 @@ const Login: NextPage = () => {
         <div className="modal-box">
           <div className="flex flex-col font-black text-2xl mb-4 mx-auto items-center justify-center">TIP</div>
           <input
+            className="mx-4"
             type="checkbox"
             name="secret_tip"
             id="isSecretTip"
             placeholder="Secret"
-            onClick={e => {
-              setIsSecretTip(e.target.checked);
+            onClick={(e: EventTarget) => {
+              setIsSecretTip(Boolean(e.target.checked));
             }}
           />{" "}
           Check this if you don't know if the pubkey receiver is registred to nostr3.
@@ -1082,20 +1086,20 @@ const Login: NextPage = () => {
             type="text"
             value={eventId}
             onChange={event => setEventId(event.target.value)}
-            className="input input-base w-full mb-4"
+            className="input input-base w-full mb-4 mt-4 border border-primary"
             placeholder="Note ID"
           />
           <input
             type="text"
             value={pubKeyReceiver}
             onChange={event => setPubKeyReceiver(event.target.value)}
-            className="input input-base w-full mb-4"
+            className="input input-base w-full mb-4 border border-primary"
             placeholder="Public Key Receiver"
           />
           <input
             type="text"
             onChange={event => setAmountToTip(event.target.value)}
-            className="input input-base w-full mb-2"
+            className="input input-base w-full mb-2 border border-primary"
             placeholder="Amount to tip"
           />
           <button
@@ -1145,7 +1149,7 @@ const Login: NextPage = () => {
                   console.log(publish)
                 } else {
                   const message = `Tip ${amountToTip} ETH to ${pubKeyReceiver}. Use this key to retrive your tip: ${key}`;
-                  const decodedPubKey = await nip19.decode(pubKeyReceiver);
+                  const decodedPubKey = nip19.decode(pubKeyReceiver);
                   const encrypted = await window.nostr.nip04.encrypt(decodedPubKey, message);
                   const newEvent = {
                     kind: 4,

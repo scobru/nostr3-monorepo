@@ -48,8 +48,7 @@ const Claim: NextPage = () => {
               </div>
             </div>
           ) : (
-            <div>
-              <div>Connect Your Wallet</div>
+            <div className="flex flex-col mx-auto">
               <RainbowKitCustomConnectButton />
             </div>
           )}

@@ -7,14 +7,11 @@ const Home: NextPage = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen py-10 w-full sm:w-4/5 md:w-3/4 lg:w-3/6 mx-auto">
       <MetaHeader />
-
       <div className="w-full">
-        <Image className="mb-12 mx-auto" src="/assets/nostr3.png" width={400} height={400} alt="nostr3" />
-
+        <Image className="mb-5 mx-auto" src="/assets/nostr3.png" width={400} height={400} alt="nostr3" />
         <div className="m-5 mx-auto w-5/6">
-          <h1 className="text-2xl mb-5">Generate Keys for Nostr Protocol with Your Web3 Address</h1>
-
-          <p className="text-xl">
+          <h1 className="text-4xl w-2/4 justify-center items-centert text-center mb-5 mx-auto">Generate Keys for <strong> NOSTR </strong> Protocol with Your <strong>EVM</strong> Address</h1>
+          {/* <p className="text-xl">
             <strong>Nostr3</strong> is here to make your life easier when dealing with the Nostr protocol! It cleverly generates private keys
             right from your EVM address, taking the hassle out of key storage. Need your keys? Just a quick interaction
             with Nostr3, and you are all set. What&apos;s more, it links your Nostr accounts to your EVM accounts,
@@ -45,7 +42,7 @@ const Home: NextPage = () => {
                 corresponding EVM addresses with our new feature.
               </li>
             </ul>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
