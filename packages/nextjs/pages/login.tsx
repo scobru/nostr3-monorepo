@@ -1,4 +1,5 @@
 /* eslint-disable react/no-unescaped-entities */
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -25,14 +26,9 @@ import { nip05 } from "nostr-tools";
 import { ProfilePointer } from "nostr-tools/lib/types/nip19";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 import "react-lazy-load-image-component/src/effects/blur.css";
-import {
-  createWalletClient,
-  http,
-  isAddress,
-  keccak256,
-  parseEther
-} from "viem";
+import { createWalletClient, http, isAddress, keccak256, parseEther } from "viem";
 import { toHex } from "viem";
+import { encodeAbiParameters, parseAbiParameters } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { optimism } from "viem/chains";
 import { WalletClient, useEnsName, usePublicClient, useWalletClient } from "wagmi";
@@ -41,14 +37,15 @@ import { useScaffoldContract } from "~~/hooks/scaffold-eth";
 import { useTransactor } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import { notification } from "~~/utils/scaffold-eth";
-import { encodeAbiParameters, parseAbiParameters } from 'viem'
 
 declare global {
   interface Window {
     nostr: {
+      nip04: any;
       getPublicKey: () => Promise<any>;
       signEvent: (event: any) => Promise<any>;
       encrypt: (data: string, key: string) => Promise<any>;
+      decrypt: (data: string, key: string) => Promise<any>;
     };
   }
 }
@@ -151,7 +148,7 @@ const Login: NextPage = () => {
             <p className="text-md">{profileDetails.about}</p>
           </div>
         )}
-        <button className="btn text-left mb-5" onClick={() => openKeysModal()}>
+        <button className="btn text-left mb-5 mt-5" onClick={() => openKeysModal()}>
           Show Keys
         </button>
         <dialog id="keys_modal" className="modal bg-gradient-to-br from-primary to-secondary">
@@ -220,14 +217,10 @@ const Login: NextPage = () => {
         </div>
 
         <div>
-          <button
-            className="btn btn-base btn-md  mr-2 md:mr-4 lg:mr-6 mt-10 mb-10 "
-            onClick={() => openTipModal()}
-          >
+          <button className="btn btn-base btn-md  mr-2 md:mr-4 lg:mr-6 mt-10 mb-10 " onClick={() => openTipModal()}>
             Tip
           </button>
         </div>
-
       </div>
     );
   };
@@ -269,7 +262,7 @@ const Login: NextPage = () => {
     let message;
     let newEvent;
 
-    console.log("Tipping")
+    console.log("Tipping");
     try {
       const txResponse = await signer?.sendTransaction({
         to: receiver,
@@ -734,11 +727,11 @@ const Login: NextPage = () => {
       if (response.ok) {
         const resultData = await response.json();
         console.log(resultData);
-        notification.remove(id)
+        notification.remove(id);
         notification.success("Stored");
       } else {
         console.error("Server response was not OK:", response.status);
-        notification.remove(id)
+        notification.remove(id);
         notification.error("Error storing data");
       }
     } else {
@@ -766,7 +759,6 @@ const Login: NextPage = () => {
         notification.error("Error storing data");
       }
     }
-
   };
 
   const handleGenerateRandomKeys = async () => {
@@ -880,8 +872,8 @@ const Login: NextPage = () => {
     : pubKeyEthAddressList;
 
   function generateRandomPassword(maxLength = 20) {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+';
-    let password = '';
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
+    let password = "";
 
     for (let i = 0; i < maxLength; i++) {
       password += characters.charAt(Math.floor(Math.random() * characters.length));
@@ -1077,8 +1069,8 @@ const Login: NextPage = () => {
             name="secret_tip"
             id="isSecretTip"
             placeholder="Secret"
-            onClick={(e: EventTarget) => {
-              setIsSecretTip(Boolean(e.target.checked));
+            onClick={(e: any) => {
+              setIsSecretTip(e.target.checked);
             }}
           />{" "}
           Check this if you don't know if the pubkey receiver is registred to nostr3.
@@ -1110,7 +1102,7 @@ const Login: NextPage = () => {
                 const receiver = pubKeyEthAddressList.find(
                   (item: { pubkey: string }) => item.pubkey === decodedPubKey.data,
                 )?.evmAddress;
-                console.log(receiver, evmAddress)
+                console.log(receiver, evmAddress);
                 setEvmAddress(evmAddress);
                 if (receiver) {
                   await handleTip(receiver);
@@ -1118,7 +1110,7 @@ const Login: NextPage = () => {
                   notification.error("Profile not registred");
                 }
               } else {
-                const key = generateRandomPassword()
+                const key = generateRandomPassword();
 
                 if (!isExtension) {
                   console.log("Not Extension");
@@ -1136,17 +1128,14 @@ const Login: NextPage = () => {
                     pubkey: publicKey,
                   };
 
-                  const encoded = encodeAbiParameters(
-                    parseAbiParameters('string'),
-                    [key]
-                  )
+                  const encoded = encodeAbiParameters(parseAbiParameters("string"), [key]);
 
                   // Deposit on the contract with HASH
                   const hash = keccak256(encoded);
 
-                  await nostr3ctx?.write?.deposit([hash], { value: parseEther(amountToTip) });
+                  await nostr3ctx?.write?.deposit([hash], { value: parseEther(String(amountToTip)) });
                   const publish = await publishEvent(newEvent as UnsignedEvent, privateKey);
-                  console.log(publish)
+                  console.log(publish);
                 } else {
                   const message = `Tip ${amountToTip} ETH to ${pubKeyReceiver}. Use this key to retrive your tip: ${key}`;
                   const decodedPubKey = nip19.decode(pubKeyReceiver);
@@ -1159,7 +1148,7 @@ const Login: NextPage = () => {
                     pubkey: publicKey,
                   };
 
-                  const hash = keccak256(String(key));
+                  const hash = keccak256(String(key) as any);
                   await nostr3ctx?.write?.deposit([hash], { value: parseEther(String(amountToTip)) });
 
                   const signedEvent = await window.nostr.signEvent(newEvent);

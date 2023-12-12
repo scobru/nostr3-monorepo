@@ -53,6 +53,7 @@ module.exports = {
         lato: ["Lato", "sans-serif"],
         mono: ["Roboto Mono", "monospace"],
         raleway: ["Raleway", "sans-serif"],
+        satoshi: ["Satoshi", "sans-serif"],
       },
     },
   },

@@ -3,6 +3,7 @@ import { NextPage } from "next";
 import { useWalletClient } from "wagmi";
 import { RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
+
 const Claim: NextPage = () => {
   const [claimValue, setClaimValue] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -11,8 +12,8 @@ const Claim: NextPage = () => {
   const { writeAsync: withdraw } = useScaffoldContractWrite({
     contractName: "Nostr3",
     functionName: "withdraw",
-    args: [claimValue]
-  })
+    args: [claimValue],
+  });
 
   useEffect(() => {
     setIsModalOpen(true);
@@ -20,7 +21,7 @@ const Claim: NextPage = () => {
 
   const handleSubmit = () => {
     console.log("Claim Value:", claimValue);
-    withdraw()
+    withdraw();
     setIsModalOpen(false); // Chiudi il modal dopo il submit
   };
 

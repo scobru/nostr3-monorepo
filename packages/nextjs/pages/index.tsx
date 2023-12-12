@@ -1,7 +1,9 @@
 import Image from "next/image";
+import "daisyui/dist/full.css";
 import type { NextPage } from "next";
 import { MetaHeader } from "~~/components/MetaHeader";
-import 'daisyui/dist/full.css'; // Importa lo stile completo di DaisyUI
+
+// Importa lo stile completo di DaisyUI
 
 const Home: NextPage = () => {
   return (
@@ -10,7 +12,9 @@ const Home: NextPage = () => {
       <div className="w-full">
         <Image className="mb-5 mx-auto" src="/assets/nostr3.png" width={400} height={400} alt="nostr3" />
         <div className="m-5 mx-auto w-5/6">
-          <h1 className="text-4xl w-2/4 justify-center items-centert text-center mb-5 mx-auto">Generate Keys for <strong> NOSTR </strong> Protocol with Your <strong>EVM</strong> Address</h1>
+          <h1 className="text-4xl w-2/4 justify-center items-centert text-center mb-5 mx-auto">
+            Generate Keys for <strong> NOSTR </strong> Protocol with Your <strong>EVM</strong> Address
+          </h1>
           {/* <p className="text-xl">
             <strong>Nostr3</strong> is here to make your life easier when dealing with the Nostr protocol! It cleverly generates private keys
             right from your EVM address, taking the hassle out of key storage. Need your keys? Just a quick interaction
