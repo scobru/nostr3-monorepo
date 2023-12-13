@@ -2,11 +2,6 @@
 
 Nostr3 is here to make your life easier when dealing with the Nostr protocol! It cleverly generates private keys right from your EVM address, taking the hassle out of key storage.
 
-Need your keys?
-Just a quick interaction with Nostr3, and you are all set.
-What's more, it links your Nostr accounts to your EVM accounts, making tipping a breeze for all Nostr accounts set up through Nostr3.
-For the best Nostr experience, we suggest pairing it with open-source clients. Happy Nostring!
-
 Nost3 aims to extend the capabilities of the Nostr protocol by incorporating Web3 payment functionalities. This integration allows users to generate a Nostr keypair by signing a signature through their wallet. Along with this keypair, an Ethereum Virtual Machine (EVM) address will be created.
 
 ## How It Works
@@ -30,6 +25,10 @@ Nost3 aims to extend the capabilities of the Nostr protocol by incorporating Web
 we build nostr3 npm package to provide the signature used to generate the keypair, you can find the reppo here <https://github.com/scobru/nostr3> or you can install
 
     npm install @scobru/nostr3
+
+we use mogu to store data over IPFS <https://github.com/scobru/mogu>
+
+    npm isntall @scobru/mogu
 
 ## NIPS
 
@@ -99,10 +98,45 @@ For a Nostr public key (pubkey) to receive tips, it must have a registered Ether
 
 This registration process ensures that tips are securely and efficiently processed, enhancing the user experience within the Nostr ecosystem.
 
+## Tipping Users Not Registered on Nostr3
+
+In addition to sending tips to registered users, Nostr3 allows tipping to users who haven't linked their EVM addresses. This is done by depositing the tip into a contract associated with a unique passkey.
+
+### Sending a Tip to Non-Registered Users
+
+1. **Tip Deposit**: The tip is deposited into a smart contract tied to a unique passkey.
+2. **Encrypted Message**: This passkey is sent in an encrypted private message to the recipient over Nostr.
+3. **Claiming the Tip**: The recipient visits the `/claim` page, enters the passkey, connects their wallet, and retrieves the tip.
+
+This feature ensures that users can send and receive tips regardless of registration status, expanding the usability of Nostr3 within the Nostr ecosystem.
+
+## How to Claim Tips (Registered and Non-Registered Users)
+
+### For Registered Users
+
+- **Direct Transfer**: Tips are directly transferred to the linked EVM wallet.
+
+### For Non-Registered Users
+
+1. **Receive Encrypted Message**: An encrypted message with a unique passkey is received via Nostr.
+2. **Visit Claim Page**: Navigate to `https://nostr3.vercel.app/claim`.
+3. **Enter Passkey**: Input the provided passkey.
+4. **Connect Wallet**: Connect your Web3 wallet.
+5. **Retrieve Tip**: Approve the transaction to claim your tip.
+
+This process ensures a smooth and secure method for all users to participate in tipping transactions, enhancing Nostr3's functionality.
+
+---
+
 ## Key Features
 
-- **Keypair and EVM Address Generation:** Users can generate a Nostr keypair and an associated EVM address through their wallet.
-  
-- **Database Registration:** The generated EVM address can be registered in the Nostr3 database over IPFS. This process links it to the user's public key within the Nostr protocol.
-  
-- **Sending and Receiving Tips:** Users can send and receive tips to and from all public keys associated with Nostr users who have registered their addresses on Nostr3.
+- **Keypair and EVM Address Generation**: Generate a Nostr keypair and an EVM address using your wallet.
+- **Database Registration**: Link your EVM address with your Nostr public key for streamlined transactions.
+- **Flexible Tipping Mechanism**: Send and receive tips easily, whether registered on Nostr3 or not.
+- **Enhanced User Experience**: Both registered and non-registered users can seamlessly engage in tip transactions.
+
+## Additional Information
+
+For more details on packages, API usage, and NIPs, please refer to the earlier sections of this README.
+
+---
