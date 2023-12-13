@@ -32,8 +32,9 @@ import { encodeAbiParameters, parseAbiParameters } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { optimism } from "viem/chains";
 import { WalletClient, useEnsName, usePublicClient, useWalletClient } from "wagmi";
+import { MetaHeader } from "~~/components/MetaHeader";
 import { AddressInput } from "~~/components/scaffold-eth";
-import { useScaffoldContract } from "~~/hooks/scaffold-eth";
+import { useScaffoldContract, useScaffoldContractRead } from "~~/hooks/scaffold-eth";
 import { useTransactor } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import { notification } from "~~/utils/scaffold-eth";
@@ -134,11 +135,9 @@ const Login: NextPage = () => {
 
   const { data: fetchedEns } = useEnsName({ address, enabled: isAddress(address ?? ""), chainId: 1 });
 
-  //::Profile
-
   const ProfileDetailsBox = () => {
     return (
-      <div className="profile-details-box bg-base-100 rounded-md p-5 my-10 flex flex-col items-center text-center">
+      <div className="profile-details-box bg-base-100 rounded-md p-5 my-10 flex flex-col">
         {profileDetails && profileDetails.display_name && (
           <div>
             {profileDetails.picture && (
@@ -196,7 +195,7 @@ const Login: NextPage = () => {
           </div>
         </dialog>
 
-        <span className="block my-4 text-xl">
+        <span className="block my-4 text-xl text-left">
           {" "}
           Link an EVM address to your Nostr account. You can change it any time.
         </span>
@@ -209,15 +208,17 @@ const Login: NextPage = () => {
 					onChange={e => setEvmAddress(e.target.value)}
 				/> */}
         <AddressInput onChange={e => setEvmAddress(e)} value={evmAddress} />
-
         <div>
-          <label className="btn btn-base btn-md  mr-2 md:mr-4 lg:mr-6 mt-10 mb-10 " onClick={handleSignIn}>
+          <label className="btn btn-base w-full  mr-2 md:mr-4 lg:mr-6 mt-10 mb-10 " onClick={handleSignIn}>
             JOIN
           </label>
         </div>
 
         <div>
-          <button className="btn btn-base btn-md  mr-2 md:mr-4 lg:mr-6 mt-10 mb-10 " onClick={() => openTipModal()}>
+          <button
+            className="btn btn-base  w-full btn-md  mr-2 md:mr-4 lg:mr-6 mt-10 mb-10 "
+            onClick={() => openTipModal()}
+          >
             Tip
           </button>
         </div>
@@ -457,44 +458,6 @@ const Login: NextPage = () => {
     setEvmAddress(evmAddress);
   };
 
-  const handleRegisterEVM = async (keys: { pub: any; sec: string }) => {
-    const messageEvent: any = {
-      kind: 30078,
-      created_at: Math.floor(Date.now() / 1000),
-      tags: [["d", "nostr3"]],
-      content: wallet?.account?.address,
-      pubkey: keys.pub,
-    };
-    const signedEvent = finishEvent(messageEvent, keys.sec);
-    await relay.publish(signedEvent);
-    setNewMessage(""); // Reset the input field after sending
-
-    // Retrieve events from the relay
-    const events = await relay.list([{ kinds: [30078] }]);
-
-    // Set state with the latest event and all retrieved events
-    setEvent({ created: signedEvent, all: events });
-  };
-
-  const handleRegisterEVMExtension = async () => {
-    const messageEvent: any = {
-      kind: 30078,
-      created_at: Math.floor(Date.now() / 1000),
-      tags: [["d", "nostr3"]],
-      content: evmAddress,
-      pubkey: publicKey,
-    };
-    const signedEvent = await window.nostr.signEvent(messageEvent);
-    await relay.publish(signedEvent);
-    setNewMessage(""); // Reset the input field after sending
-
-    // Retrieve events from the relay
-    const events = await relay.list([{ kinds: [30078] }]);
-
-    // Set state with the latest event and all retrieved events
-    setEvent({ created: signedEvent, all: events });
-  };
-
   //::Handlers
 
   const handleConnectWithKeyPair = async () => {
@@ -711,7 +674,6 @@ const Login: NextPage = () => {
   const handleSignIn = async () => {
     if (!isExtension) {
       const id = notification.loading("Process");
-      await handleRegisterEVM(nostrKeys);
 
       const response = await fetch("/api/store", {
         method: "POST",
@@ -736,8 +698,6 @@ const Login: NextPage = () => {
       }
     } else {
       const id = notification.loading("Process");
-
-      await handleRegisterEVMExtension();
 
       const response = await fetch("/api/store", {
         method: "POST",
@@ -884,13 +844,15 @@ const Login: NextPage = () => {
 
   return (
     <div className="flex items-center flex-col flex-grow pt-10 w-full sm:w-4/5 md:w-3/4 lg:w-3/6 mx-auto">
+      <MetaHeader />
+
       <div className="w-full">
         {signer?.account ? (
-          <div className="m-5 mx-auto w-5/6">
+          <div className="m-2 mx-auto w-5/6">
             {privateKey == "" ? (
               <div>
-                <span className="block  font-semibold mx-5 mb-5">LOGIN WITH WALLET</span>
-                <nav className="flex flex-wrap p-8 text-center mx-auto w-auto bg-base-300 border border-gray-500  rounded-lg mb-8 gap-4">
+                <span className="block font-semibold mx-5 mb-5">LOGIN WITH WALLET</span>
+                <nav className="flex flex-wrap p-8 text-center mx-auto w-auto bg-base-300 border border-gray-500 rounded-lg mb-8 gap-4">
                   <input
                     type="text"
                     className="input input-base mr-2 md:mr-4 lg:mr-6"
@@ -995,8 +957,8 @@ const Login: NextPage = () => {
               </dialog>{" "}
             </nav>
             {event && event.created && (
-              <div className="bg-success p-5 text-black rounded-md mb-4">
-                <h2 className="text-2xl mb-2">🎉 Posted!</h2>
+              <div className="bg-success p-5 text-black rounded-md mb-4 break-all">
+                <h2 className="text-2xl mb-2">🎉 Registred!</h2>
                 <p className="mb-2 text-lg font-medium">{event.created.content}</p>
               </div>
             )}

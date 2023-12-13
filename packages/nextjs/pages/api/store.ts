@@ -13,6 +13,7 @@ const mogu = new Mogu(
   process.env.NEXT_PUBLIC_PINATA_API_KEY,
   process.env.NEXT_PUBLIC_PINATA_API_SECRET,
   process.env.NEXT_PUBLIC_DB_NAME,
+  process.env.NEXT_PUBLIC_PINATA_GATEWAY
 );
 
 export default async function handler(
@@ -131,6 +132,7 @@ export default async function handler(
       process.env.NEXT_PUBLIC_PINATA_API_KEY,
       process.env.NEXT_PUBLIC_PINATA_API_SECRET,
       process.env.NEXT_PUBLIC_DB_NAME,
+      process.env.NEXT_PUBLIC_PINATA_GATEWAY
     );
 
     const { evmAddress } = req.query;

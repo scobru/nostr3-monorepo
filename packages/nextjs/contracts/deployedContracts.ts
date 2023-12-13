@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   10: {
     Nostr3: {
-      address: "0x21f5C4f2a0898Aa3EaFfdcb644dFeF30e95cC359",
+      address: "0x432AF68A2CED9891dEf8Caf7140574b7452Fa479",
       abi: [
         {
           inputs: [],
@@ -31,11 +31,40 @@ const deployedContracts = {
           inputs: [
             {
               internalType: "uint256",
-              name: "newFee",
+              name: "",
               type: "uint256",
             },
           ],
-          name: "changeFEE",
+          name: "accounts",
+          outputs: [
+            {
+              internalType: "bytes",
+              name: "publicKey",
+              type: "bytes",
+            },
+            {
+              internalType: "address",
+              name: "evmAddres",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes",
+              name: "publicKey",
+              type: "bytes",
+            },
+            {
+              internalType: "address",
+              name: "newEvmAddress",
+              type: "address",
+            },
+          ],
+          name: "change",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
@@ -96,6 +125,24 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes",
+              name: "publicKey",
+              type: "bytes",
+            },
+            {
+              internalType: "address",
+              name: "evmAddress",
+              type: "address",
+            },
+          ],
+          name: "join",
+          outputs: [],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {

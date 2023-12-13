@@ -2115,7 +2115,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@scobru/mogu@npm:^1.2.5, @scobru/mogu@npm:^1.2.7":
+"@scobru/mogu@npm:^1.2.5":
   version: 1.2.7
   resolution: "@scobru/mogu@npm:1.2.7"
   dependencies:
@@ -2140,6 +2140,34 @@ __metadata:
     winston: ^3.11.0
     ws: ^8.14.2
   checksum: a088f12c44b2912e0d456c3ad7fc0ad62b2751f2ac96ec9fb38ad19c02164e262ace546f3a555802596b11ad8a9319598df8666295e0aa8ad387b9053a4be989
+  languageName: node
+  linkType: hard
+
+"@scobru/mogu@npm:^1.2.8":
+  version: 1.2.8
+  resolution: "@scobru/mogu@npm:1.2.8"
+  dependencies:
+    "@scobru/crypto-ipfs": ^1.1.8
+    "@types/express": ^4.17.20
+    "@types/libsodium-wrappers": ^0.7.12
+    "@types/node": ^20.8.10
+    "@types/ws": ^8.5.8
+    asymmetric-crypto: ^1.0.2
+    axios: ^1.6.0
+    dotenv: ^16.3.1
+    ethers: 5.0.0
+    express: ^4.18.2
+    fs-extra: ^11.1.1
+    libsodium-wrappers: ^0.7.13
+    morgan: ^1.10.0
+    nostr-tools: ^1.17.0
+    prettier: ^3.0.3
+    ts-node: ^10.9.1
+    tsc: ^2.0.4
+    typescript: ^5.2.2
+    winston: ^3.11.0
+    ws: ^8.14.2
+  checksum: 1440a2884b6873e4fab01aecc54bcc37cad7798273a4062fda382402de82f885c7aa9e6433278cff9c2014d022e77117e0b7619f0ca1c295e925d7ed60da4179
   languageName: node
   linkType: hard
 
@@ -2301,7 +2329,7 @@ __metadata:
     "@noble/secp256k1": ^2.0.0
     "@rainbow-me/rainbowkit": 1.1.2
     "@scobru/crypto-ipfs": ^1.1.11
-    "@scobru/mogu": ^1.2.7
+    "@scobru/mogu": ^1.2.8
     "@scobru/nostr3": ^1.1.5
     "@trivago/prettier-plugin-sort-imports": ^4.1.1
     "@types/elliptic": ^6

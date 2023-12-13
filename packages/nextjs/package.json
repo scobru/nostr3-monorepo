@@ -22,7 +22,7 @@
     "@noble/secp256k1": "^2.0.0",
     "@rainbow-me/rainbowkit": "1.1.2",
     "@scobru/crypto-ipfs": "^1.1.11",
-    "@scobru/mogu": "^1.2.7",
+    "@scobru/mogu": "^1.2.8",
     "@scobru/nostr3": "^1.1.5",
     "@types/fs-extra": "^11.0.4",
     "@uniswap/sdk-core": "^4.0.1",

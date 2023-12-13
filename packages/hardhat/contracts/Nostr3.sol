@@ -7,19 +7,40 @@ contract Nostr3 {
 
 	uint256 public fees;
 
-	uint256 public FEE = 1 wei;
-	
-	uint256 constant MAX_FEE = 1000 wei;
+	uint256 public FEE = 10; // 10 / 10000 =  
+
+	struct Nostr3Account {
+		bytes publicKey;
+		address evmAddres;
+	}
+
+	Nostr3Account[] public accounts;
 
 	constructor() {
 		owner = msg.sender;
 	}
 
-	function changeFEE(uint256 newFee) public {
-		require(msg.sender == owner, "NOT_ALLOWED");
-		require(newFee <= MAX_FEE, "FEE_TO_HIGH");
-		FEE = newFee;
+
+	function join(bytes memory publicKey,address evmAddress) public {
+		Nostr3Account memory account;
+		account.publicKey = publicKey;
+		account.evmAddres = evmAddress;
+		accounts.push(account);
 	}
+
+	function change(bytes memory publicKey, address newEvmAddress) public {
+		bool isFound = false;
+		for (uint i = 0; i < accounts.length; i++) {
+			if (keccak256(accounts[i].publicKey) == keccak256(publicKey)) {
+				require(msg.sender == accounts[i].evmAddres, "NOT_ALLOWED");
+				accounts[i].evmAddres = newEvmAddress;
+				isFound = true;
+				break;
+			}
+		}
+    	require(isFound, "PUBLIC_KEY_NOT_FOUND");
+	}
+
 
 	function changeOwner(address _newOwner) public {
 		require(msg.sender == owner, "NOT_ALLOWED");
@@ -27,9 +48,9 @@ contract Nostr3 {
 	}
 
 	function deposit(bytes32 encryptedHash) public payable {
-		uint256 depositAmount = msg.value - FEE;
-		fees += FEE;
-
+		uint256 feeAmount = msg.value * FEE / 10000;
+		uint256 depositAmount = msg.value - feeAmount;
+		fees += feeAmount;
 		encryptedDeposits[encryptedHash] = depositAmount;
 	}
 
@@ -46,4 +67,17 @@ contract Nostr3 {
 		fees = 0;
 		payable(msg.sender).transfer(amountToSend);
 	}
+
+	function getAccounts() public view returns (bytes[] memory, address[] memory) {
+        bytes[] memory publicKeys = new bytes[](accounts.length);
+        address[] memory evmAddresses = new address[](accounts.length);
+
+        for (uint i = 0; i < accounts.length; i++) {
+            publicKeys[i] = accounts[i].publicKey;
+            evmAddresses[i] = accounts[i].evmAddres;
+        }
+
+        return (publicKeys, evmAddresses);
+    }
+
 }

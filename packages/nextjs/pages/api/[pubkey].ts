@@ -23,6 +23,7 @@ export default async function handler(
       process.env.NEXT_PUBLIC_PINATA_API_KEY,
       process.env.NEXT_PUBLIC_PINATA_API_SECRET,
       process.env.NEXT_PUBLIC_DB_NAME,
+      process.env.NEXT_PUBLIC_PINATA_GATEWAY
     );
 
     const pubkey = req.query.pubkey;
