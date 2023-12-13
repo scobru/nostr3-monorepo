@@ -150,8 +150,8 @@ const Login: NextPage = () => {
         <button className="btn text-left mb-5 mt-5" onClick={() => openKeysModal()}>
           Show Keys
         </button>
-        <dialog id="keys_modal" className="modal bg-gradient-to-br from-primary to-secondary">
-          <div className="modal-box">
+        <dialog id="keys_modal" className="modal bg-gradient-to-br from-secondary  to-slate-900">
+          <div className="modal-box shadow-base-300 shadow-xl">
             <div className="w-fit bg-base-100 text-base-content rounded-lg p-5 text-left break-all mt-4">
               <ul className="space-y-2">
                 {publicKey && (
@@ -257,6 +257,52 @@ const Login: NextPage = () => {
   const publishEvent = async (event: UnsignedEvent, _sk: string) => {
     const signedEvent = createEvent(event, _sk);
     await relay?.publish(signedEvent);
+  };
+
+  const handleTipNotRegisterd = async () => {
+    const key = generateRandomPassword();
+    if (!isExtension) {
+      console.log("Not Extension");
+      const nostr3 = new Nostr3(privateKey);
+      const message = `Tip ${amountToTip} OPETH to ${pubKeyReceiver}. Go to https://nostr3.vercel.app/claim and use this key to retrive your tip: ${key}`;
+      const decodedPubKey = await nip19.decode(pubKeyReceiver);
+      const encrypted = await nostr3.encryptDM(message, String(decodedPubKey.data));
+
+      // Send message with key encryted to the npub
+      const newEvent = {
+        kind: 4,
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [["p", String(decodedPubKey.data)]],
+        content: String(encrypted),
+        pubkey: publicKey,
+      };
+
+      const encoded = encodeAbiParameters(parseAbiParameters("string"), [key]);
+
+      // Deposit on the contract with HASH
+      const hash = keccak256(encoded);
+
+      await nostr3ctx?.write?.deposit([hash], { value: parseEther(String(amountToTip)) });
+      const publish = await publishEvent(newEvent as UnsignedEvent, privateKey);
+      console.log(publish);
+    } else {
+      const message = `Tip ${amountToTip} ETH to ${pubKeyReceiver}. Use this key to retrive your tip: ${key}`;
+      const decodedPubKey = nip19.decode(pubKeyReceiver);
+      const encrypted = await window.nostr.nip04.encrypt(decodedPubKey, message);
+      const newEvent = {
+        kind: 4,
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [["p", pubKeyReceiver]],
+        content: encrypted,
+        pubkey: publicKey,
+      };
+
+      const hash = keccak256(String(key) as any);
+      await nostr3ctx?.write?.deposit([hash], { value: parseEther(String(amountToTip)) });
+
+      const signedEvent = await window.nostr.signEvent(newEvent);
+      await relay?.publish(signedEvent);
+    }
   };
 
   const handleTip = async (receiver: any) => {
@@ -923,7 +969,7 @@ const Login: NextPage = () => {
                 Relay
               </button>
               <dialog id="relay_modal" className="modal">
-                <div className="modal-box">
+                <div className="modal-box shadow-base-300 shadow-xl">
                   <h1 className="text-3xl font-thin mb-4">RELAY</h1>
                   <button
                     className=" w-full  btn btn-primary mb-5"
@@ -1022,8 +1068,8 @@ const Login: NextPage = () => {
           </div>
         )}
       </div>
-      <dialog id="tip_modal" className="modal bg-gradient-to-br from-primary to-secondary">
-        <div className="modal-box">
+      <dialog id="tip_modal" className="modal bg-gradient-to-br from-secondary  to-slate-900">
+        <div className="modal-box shadow-base-300 shadow-xl">
           <div className="flex flex-col font-black text-2xl mb-4 mx-auto items-center justify-center">TIP</div>
           <input
             className="mx-4"
@@ -1059,63 +1105,17 @@ const Login: NextPage = () => {
           <button
             className="btn btn-primary mt-4"
             onClick={async () => {
-              if (!isSecretTip) {
-                const decodedPubKey = await nip19.decode(pubKeyReceiver);
-                const receiver = pubKeyEthAddressList.find(
-                  (item: { pubkey: string }) => item.pubkey === decodedPubKey.data,
-                )?.evmAddress;
+              const decodedPubKey = await nip19.decode(pubKeyReceiver);
+              const receiver = pubKeyEthAddressList.find(
+                (item: { pubkey: string }) => item.pubkey === decodedPubKey.data,
+              )?.evmAddress;
+
+              if (receiver) {
                 console.log(receiver, evmAddress);
                 setEvmAddress(evmAddress);
-                if (receiver) {
-                  await handleTip(receiver);
-                } else {
-                  notification.error("Profile not registred");
-                }
+                await handleTip(receiver);
               } else {
-                const key = generateRandomPassword();
-
-                if (!isExtension) {
-                  console.log("Not Extension");
-                  const nostr3 = new Nostr3(privateKey);
-                  const message = `Tip ${amountToTip} OPETH to ${pubKeyReceiver}. Go to https://nostr3.vercel.app/claim and use this key to retrive your tip: ${key}`;
-                  const decodedPubKey = await nip19.decode(pubKeyReceiver);
-                  const encrypted = await nostr3.encryptDM(message, String(decodedPubKey.data));
-
-                  // Send message with key encryted to the npub
-                  const newEvent = {
-                    kind: 4,
-                    created_at: Math.floor(Date.now() / 1000),
-                    tags: [["p", String(decodedPubKey.data)]],
-                    content: String(encrypted),
-                    pubkey: publicKey,
-                  };
-
-                  const encoded = encodeAbiParameters(parseAbiParameters("string"), [key]);
-
-                  // Deposit on the contract with HASH
-                  const hash = keccak256(encoded);
-
-                  await nostr3ctx?.write?.deposit([hash], { value: parseEther(String(amountToTip)) });
-                  const publish = await publishEvent(newEvent as UnsignedEvent, privateKey);
-                  console.log(publish);
-                } else {
-                  const message = `Tip ${amountToTip} ETH to ${pubKeyReceiver}. Use this key to retrive your tip: ${key}`;
-                  const decodedPubKey = nip19.decode(pubKeyReceiver);
-                  const encrypted = await window.nostr.nip04.encrypt(decodedPubKey, message);
-                  const newEvent = {
-                    kind: 4,
-                    created_at: Math.floor(Date.now() / 1000),
-                    tags: [["p", pubKeyReceiver]],
-                    content: encrypted,
-                    pubkey: publicKey,
-                  };
-
-                  const hash = keccak256(String(key) as any);
-                  await nostr3ctx?.write?.deposit([hash], { value: parseEther(String(amountToTip)) });
-
-                  const signedEvent = await window.nostr.signEvent(newEvent);
-                  await relay?.publish(signedEvent);
-                }
+                await handleTipNotRegisterd();
               }
             }}
           >

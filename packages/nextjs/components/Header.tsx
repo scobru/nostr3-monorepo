@@ -96,7 +96,7 @@ export const Header = () => {
             <Image alt="SE2 logo" className="cursor-pointer" fill src="/logo.svg" />
           </div> */}
           <div className="flex flex-col">
-            <span className="font-bold leading-tight text-3xl">NOSTR3</span>
+            <span className="font-extrabold leading-tight text-3xl">NOSTR3</span>
             <span className="text-xs">Link Web3 to nostr</span>
           </div>
         </Link>
