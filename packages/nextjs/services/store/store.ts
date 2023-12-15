@@ -20,6 +20,8 @@ type TGlobalState = {
   setEvent: (newEvent: any) => void;
   followerAuthors: string[];
   setFollowerAuthors: (newFollowerAuthors: string[]) => void;
+  cid: string;
+  setCid: (newCid: string) => void;
 };
 
 export const useGlobalState = create<TGlobalState>(set => ({
@@ -33,4 +35,6 @@ export const useGlobalState = create<TGlobalState>(set => ({
   setEvent: (newEvent: any): void => set(() => ({ event: newEvent })),
   followerAuthors: [],
   setFollowerAuthors: (newFollowerAuthors: any): void => set(() => ({ followerAuthors: newFollowerAuthors })),
+  cid: "",
+  setCid: (newCid: any): void => set(() => ({ cid: newCid })),
 }));

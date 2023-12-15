@@ -105,8 +105,7 @@ const Login: NextPage = () => {
   const [eventId, setEventId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const runTx = useTransactor(signer as WalletClient);
-  const [isSecretTip, setIsSecretTip] = useState("false");
-  const [isHide, setIsHide] = useState("false")
+  const [isHide, setIsHide] = useState(true)
 
   const { data: nostr3ctx } = useScaffoldContract({
     contractName: "Nostr3",
@@ -170,8 +169,8 @@ const Login: NextPage = () => {
                 </button>
                 {privateKey && !isHide && nostrPrivateKey ? (
                   <div>
-                    <li id="privateKeyItem" class="font-bold border-b border-primary-content p-2 bl">
-                      Private Key: <span id="privateKey" class="font-normal">{privateKey}</span>
+                    <li id="privateKeyItem" className="font-bold border-b border-primary-content p-2 bl">
+                      Private Key: <span id="privateKey" className="font-normal">{privateKey}</span>
                     </li>
                     <li className="font-bold border-b border-primary-content p-2">
                       NIP19 Private Key: <span className="font-normal">{nostrPrivateKey}</span>
@@ -180,8 +179,8 @@ const Login: NextPage = () => {
                 ) : (
                   <div>
 
-                    <li id="privateKeyItem" class="font-bold border-b border-primary-content p-2 bl">
-                      Private Key: <span id="privateKey" class="font-normal"></span>
+                    <li id="privateKeyItem" className="font-bold border-b border-primary-content p-2 bl">
+                      Private Key: <span id="privateKey" className="font-normal"></span>
                     </li>
                     <li className="font-bold border-b border-primary-content p-2">
                       NIP19 Private Key: <span className="font-normal"></span>

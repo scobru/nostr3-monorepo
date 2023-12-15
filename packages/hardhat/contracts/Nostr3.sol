@@ -20,7 +20,6 @@ contract Nostr3 {
 		owner = msg.sender;
 	}
 
-
 	function join(bytes memory publicKey,address evmAddress) public {
 		Nostr3Account memory account;
 		account.publicKey = publicKey;
@@ -47,6 +46,8 @@ contract Nostr3 {
 		owner = _newOwner;
 	}
 
+
+	// TODO : Add reentrancy
 	function deposit(bytes32 encryptedHash) public payable {
 		uint256 feeAmount = msg.value * FEE / 10000;
 		uint256 depositAmount = msg.value - feeAmount;
@@ -57,8 +58,9 @@ contract Nostr3 {
 	function withdraw(string calldata key) public {
 		bytes32 hashed = keccak256(abi.encode(key));
 		uint amount = encryptedDeposits[hashed];
-		payable(msg.sender).transfer(amount);
 		encryptedDeposits[hashed] = 0;
+		payable(msg.sender).transfer(amount);
+		
 	}
 
 	function withdrawFees() public {

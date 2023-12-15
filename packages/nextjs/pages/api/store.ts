@@ -13,7 +13,7 @@ const mogu = new Mogu(
   process.env.NEXT_PUBLIC_PINATA_API_KEY,
   process.env.NEXT_PUBLIC_PINATA_API_SECRET,
   process.env.NEXT_PUBLIC_DB_NAME,
-  process.env.NEXT_PUBLIC_PINATA_GATEWAY
+  process.env.NEXT_PUBLIC_PINATA_GATEWAY,
 );
 
 export default async function handler(
@@ -34,8 +34,8 @@ export default async function handler(
   let cid;
   let state;
 
-  if (fse.existsSync(process.cwd() + "/pages/api/cids.json")) {
-    const rawData = fse.readFileSync(process.cwd() + "/pages/api/cids.json", "utf8");
+  if (fse.existsSync(process.cwd() + "/public/cids.json")) {
+    const rawData = fse.readFileSync(process.cwd() + "/public/cids.json", "utf8");
     cid = JSON.parse(rawData);
   }
 
@@ -68,7 +68,7 @@ export default async function handler(
       const hash = await mogu.store();
       console.log("CID:", hash);
 
-      fse.writeFileSync(process.cwd() + "/pages/api/cids.json", JSON.stringify(hash));
+      fse.writeFileSync(process.cwd() + "/public/cids.json", JSON.stringify(hash));
 
       return res.status(200).json({
         message: "Key stored and pinned to IPFS via Pinata successfully",
@@ -94,7 +94,7 @@ export default async function handler(
           const hash = await mogu.store();
           console.log("New CID", hash);
 
-          fse.writeFileSync(process.cwd() + "/pages/api/cids.json", JSON.stringify(hash));
+          fse.writeFileSync(process.cwd() + "/public/cids.json", JSON.stringify(hash));
 
           return res.status(200).json({
             message: "Key stored and pinned to IPFS via Pinata successfully",
@@ -112,7 +112,7 @@ export default async function handler(
           const hash = await mogu.store();
           console.log("New CID", hash);
 
-          fse.writeFileSync(process.cwd() + "/pages/api/cids.json", JSON.stringify(hash));
+          fse.writeFileSync(process.cwd() + "/public/cids.json", JSON.stringify(hash));
 
           return res.status(200).json({
             message: "Key stored and pinned to IPFS via Pinata successfully",
@@ -132,7 +132,7 @@ export default async function handler(
       process.env.NEXT_PUBLIC_PINATA_API_KEY,
       process.env.NEXT_PUBLIC_PINATA_API_SECRET,
       process.env.NEXT_PUBLIC_DB_NAME,
-      process.env.NEXT_PUBLIC_PINATA_GATEWAY
+      process.env.NEXT_PUBLIC_PINATA_GATEWAY,
     );
 
     const { evmAddress } = req.query;

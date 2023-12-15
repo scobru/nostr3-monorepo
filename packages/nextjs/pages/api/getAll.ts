@@ -21,16 +21,16 @@ export default async function handler(
         process.env.NEXT_PUBLIC_PINATA_API_KEY,
         process.env.NEXT_PUBLIC_PINATA_API_SECRET,
         process.env.NEXT_PUBLIC_DB_NAME,
-        process.env.NEXT_PUBLIC_PINATA_GATEWAY
+        process.env.NEXT_PUBLIC_PINATA_GATEWAY,
       );
 
       let cid;
-      const cidFilePath = process.cwd() + "/pages/api/cids.json";
+      const cidFilePath = process.cwd() + "/public/cids.json";
 
       if (fse.existsSync(cidFilePath)) {
         const rawData = fse.readFileSync(cidFilePath, "utf8");
         cid = JSON.parse(rawData);
-        console.log(cid)
+        console.log(cid);
       } else {
         throw new Error("CID file not found.");
       }

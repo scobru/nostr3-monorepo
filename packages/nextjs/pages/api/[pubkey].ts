@@ -31,8 +31,8 @@ export default async function handler(
     let cid;
     let state;
 
-    if (fse.existsSync(process.cwd() + "/pages/api/cids.json")) {
-      const rawData = fse.readFileSync(process.cwd() + "/pages/api/cids.json", "utf8");
+    if (fse.existsSync(process.cwd() + "/public/cids.json")) {
+      const rawData = fse.readFileSync(process.cwd() + "/public/cids.json", "utf8");
       cid = JSON.parse(rawData);
     }
 
