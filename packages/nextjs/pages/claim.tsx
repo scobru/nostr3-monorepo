@@ -27,11 +27,11 @@ const Claim: NextPage = () => {
 
   return (
     <div className="flex flex-col mx-auto w-3/6 items-center justify-center">
-      <dialog open={isModalOpen} className="modal bg-gradient-to-br from-primary to-secondary">
-        <div className="modal-box">
-          <div className="flex flex-col font-black text-2xl mb-4 mx-auto items-center justify-center">CLAIM</div>
+      <dialog open={isModalOpen} className="modal bg-gradient-to-br from-secondary  to-slate-900">
+        <div className="modal-box shadow-base-300 shadow-xl">
+          <div className="flex flex-col font-black text-4xl mb-8 mx-auto items-center justify-center">nostr3</div>
           {signer ? (
-            <div>
+            <div className="text-center">
               <input
                 type="text"
                 value={claimValue}
@@ -39,7 +39,7 @@ const Claim: NextPage = () => {
                 className="input input-primary w-full mb-4"
                 placeholder="Insert Key"
               />
-              <button className="btn btn-primary mt-4" onClick={handleSubmit}>
+              <button className="btn btn-primary mt-4 text-center" onClick={handleSubmit}>
                 Claim
               </button>
               <div className="modal-action">

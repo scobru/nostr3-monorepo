@@ -91,3 +91,7 @@ p {
   top: 10px; /* Adjust as needed */
   right: 40px; /* Adjust as needed */
 }
+
+.blur {
+    filter: blur(8px);
+}

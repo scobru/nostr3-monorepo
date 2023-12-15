@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/router";
 import { NextPage } from "next";
 import { Relay, nip19, relayInit } from "nostr-tools";

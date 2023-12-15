@@ -106,6 +106,7 @@ const Login: NextPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const runTx = useTransactor(signer as WalletClient);
   const [isSecretTip, setIsSecretTip] = useState("false");
+  const [isHide, setIsHide] = useState("false")
 
   const { data: nostr3ctx } = useScaffoldContract({
     contractName: "Nostr3",
@@ -159,21 +160,37 @@ const Login: NextPage = () => {
                     Public Key: <span className="font-normal">{publicKey}</span>
                   </li>
                 )}
-                {privateKey && (
-                  <li className="font-bold border-b border-primary-content p-2">
-                    Private Key: <span className="font-normal">{privateKey}</span>
-                  </li>
-                )}
                 {nostrPublicKey && (
                   <li className="font-bold border-b border-primary-content p-2">
                     NIP19 Public Key: <span className="font-normal">{nostrPublicKey}</span>
                   </li>
                 )}
-                {nostrPrivateKey && (
-                  <li className="font-bold border-b border-primary-content p-2">
-                    NIP19 Private Key: <span className="font-normal">{nostrPrivateKey}</span>
-                  </li>
+                <button className="btn text-left mb-5 mt-5" onClick={() => { !isHide ? setIsHide(true) : setIsHide(false) }}>
+                  {isHide ? "show private Key" : "hide private key"}
+                </button>
+                {privateKey && !isHide && nostrPrivateKey ? (
+                  <div>
+                    <li id="privateKeyItem" class="font-bold border-b border-primary-content p-2 bl">
+                      Private Key: <span id="privateKey" class="font-normal">{privateKey}</span>
+                    </li>
+                    <li className="font-bold border-b border-primary-content p-2">
+                      NIP19 Private Key: <span className="font-normal">{nostrPrivateKey}</span>
+                    </li>
+                  </div>
+                ) : (
+                  <div>
+
+                    <li id="privateKeyItem" class="font-bold border-b border-primary-content p-2 bl">
+                      Private Key: <span id="privateKey" class="font-normal"></span>
+                    </li>
+                    <li className="font-bold border-b border-primary-content p-2">
+                      NIP19 Private Key: <span className="font-normal"></span>
+                    </li>
+                  </div>
+
                 )}
+
+
                 {nProfile && (
                   <li className="font-bold p-2">
                     NIP19 Nostr Profile: <span className="font-normal">{nProfile}</span>
@@ -283,8 +300,9 @@ const Login: NextPage = () => {
       const hash = keccak256(encoded);
 
       await nostr3ctx?.write?.deposit([hash], { value: parseEther(String(amountToTip)) });
+
       const publish = await publishEvent(newEvent as UnsignedEvent, privateKey);
-      console.log(publish);
+
     } else {
       const message = `Tip ${amountToTip} ETH to ${pubKeyReceiver}. Use this key to retrive your tip: ${key}`;
       const decodedPubKey = nip19.decode(pubKeyReceiver);
@@ -1071,17 +1089,7 @@ const Login: NextPage = () => {
       <dialog id="tip_modal" className="modal bg-gradient-to-br from-secondary  to-slate-900">
         <div className="modal-box shadow-base-300 shadow-xl">
           <div className="flex flex-col font-black text-2xl mb-4 mx-auto items-center justify-center">TIP</div>
-          <input
-            className="mx-4"
-            type="checkbox"
-            name="secret_tip"
-            id="isSecretTip"
-            placeholder="Secret"
-            onClick={(e: any) => {
-              setIsSecretTip(e.target.checked);
-            }}
-          />{" "}
-          Check this if you don't know if the pubkey receiver is registred to nostr3.
+
           <input
             type="text"
             value={eventId}
