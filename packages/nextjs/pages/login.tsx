@@ -912,7 +912,7 @@ const Login: NextPage = () => {
       <div className="w-full">
         {signer?.account ? (
           <div className="m-2 mx-auto w-5/6">
-            {privateKey == "" ? (
+            {privateKey == "" && !isExtension ? (
               <div>
                 <span className="block font-semibold mx-5 mb-5">LOGIN WITH WALLET</span>
                 <nav className="flex flex-wrap p-8 text-center mx-auto w-auto bg-base-300 border border-gray-500 rounded-lg mb-8 gap-4">

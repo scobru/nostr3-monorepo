@@ -32,7 +32,7 @@ export default async function handler(
       const cid = await kv.get("nostr3_cid");
       console.log("KV Object:", cid);
 
-      if (cid) {
+      if (String(cid)) {
         // Ensure that the state is fully loaded before proceeding
         const state = await mogu.load(String(cid));
         // create an array from state
