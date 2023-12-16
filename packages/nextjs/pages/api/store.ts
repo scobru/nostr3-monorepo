@@ -1,6 +1,11 @@
 import { Mogu } from "@scobru/mogu";
 import { EncryptedNode } from "@scobru/mogu/dist/db/db";
-import fse from "fs-extra";
+import { createClient } from "@vercel/kv";
+
+const kv = createClient({
+  url: String(process.env.KV_REST_API_URL),
+  token: String(process.env.KV_REST_API_TOKEN),
+});
 
 interface IResponse {
   error?: string;
@@ -31,18 +36,11 @@ export default async function handler(
     };
   },
 ) {
-  let cid;
+  const cid = await kv.get("nostr3_cid");
+  console.log("KV Object:", cid);
   let state;
 
-  if (fse.existsSync(process.cwd() + "/public/cids.json")) {
-    const rawData = fse.readFileSync(process.cwd() + "/public/cids.json", "utf8");
-    cid = JSON.parse(rawData);
-  }
-
   const { evmAddress, pubKey } = req.body;
-
-  console.log("EVM Address", evmAddress);
-  console.log("Public Key", pubKey);
 
   const node: EncryptedNode = {
     id: String(evmAddress),
@@ -56,9 +54,8 @@ export default async function handler(
 
   if (req.method === "POST") {
     // Cid not exists
-    if (cid == null) {
+    if (!cid) {
       console.log("CID not exists!");
-
       try {
         state = mogu.addNode(node);
       } catch (error) {
@@ -67,8 +64,7 @@ export default async function handler(
 
       const hash = await mogu.store();
       console.log("CID:", hash);
-
-      fse.writeFileSync(process.cwd() + "/public/cids.json", JSON.stringify(hash));
+      await kv.set("nostr3_cid", JSON.stringify(hash));
 
       return res.status(200).json({
         message: "Key stored and pinned to IPFS via Pinata successfully",
@@ -76,8 +72,8 @@ export default async function handler(
       });
     } else {
       console.log("CID exists!");
-
       state = await mogu.load(String(cid));
+
       console.log("Old CID", cid);
       console.log("State:", state);
 
@@ -86,15 +82,15 @@ export default async function handler(
 
       if (JSON.parse(JSON.stringify(storedState)).length != 0) {
         try {
-          state = mogu.load(String(cid));
+          state = await mogu.load(String(cid));
           state = mogu.updateNode(node);
           console.log(state);
 
-          await mogu.unpin(cid);
+          await mogu.unpin(String(cid));
           const hash = await mogu.store();
           console.log("New CID", hash);
 
-          fse.writeFileSync(process.cwd() + "/public/cids.json", JSON.stringify(hash));
+          await kv.set("nostr3_cid", JSON.stringify(hash));
 
           return res.status(200).json({
             message: "Key stored and pinned to IPFS via Pinata successfully",
@@ -105,14 +101,14 @@ export default async function handler(
         }
       } else {
         try {
-          state = mogu.load(String(cid));
+          state = await mogu.load(String(cid));
           state = mogu.addNode(node);
           console.log(state);
 
           const hash = await mogu.store();
           console.log("New CID", hash);
 
-          fse.writeFileSync(process.cwd() + "/public/cids.json", JSON.stringify(hash));
+          await kv.set("nostr3_cid", JSON.stringify(hash));
 
           return res.status(200).json({
             message: "Key stored and pinned to IPFS via Pinata successfully",
@@ -137,18 +133,10 @@ export default async function handler(
 
     const { evmAddress } = req.query;
 
-    let cid;
-    let state;
-
-    if (fse.existsSync(process.cwd() + "/pages/api/cids.json")) {
-      const rawData = fse.readFileSync(process.cwd() + "/pages/api/cids.json", "utf8");
-      cid = JSON.parse(rawData);
-    }
-
     console.log("IPFS hash", cid);
 
     try {
-      state = await mogu.load(cid);
+      state = await mogu.load(String(cid));
       console.log("State;", state);
       state = mogu.queryByName(evmAddress);
       console.log(evmAddress);

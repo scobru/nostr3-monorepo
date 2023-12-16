@@ -1,5 +1,10 @@
 import { Mogu } from "@scobru/mogu";
-import fse from "fs-extra";
+import { createClient } from "@vercel/kv";
+
+const kv = createClient({
+  url: String(process.env.KV_REST_API_URL),
+  token: String(process.env.KV_REST_API_TOKEN),
+});
 
 export default async function handler(
   req: {
@@ -24,28 +29,23 @@ export default async function handler(
         process.env.NEXT_PUBLIC_PINATA_GATEWAY,
       );
 
-      let cid;
-      const cidFilePath = process.cwd() + "/public/cids.json";
+      const cid = await kv.get("nostr3_cid");
+      console.log("KV Object:", cid);
 
-      if (fse.existsSync(cidFilePath)) {
-        const rawData = fse.readFileSync(cidFilePath, "utf8");
-        cid = JSON.parse(rawData);
-        console.log(cid);
+      if (cid) {
+        // Ensure that the state is fully loaded before proceeding
+        const state = await mogu.load(String(cid));
+        // create an array from state
+        const stateArray = Array.from(state.values());
+
+        if (state) {
+          // Wait until the state is fully loaded before sending the response
+          res.status(200).json({ data: stateArray });
+        } else {
+          res.status(404).json({ message: "No data found for this CID" });
+        }
       } else {
-        throw new Error("CID file not found.");
-      }
-
-      // Ensure that the state is fully loaded before proceeding
-      const state = await mogu.load(cid);
-      // create an array from state
-      const stateArray = Array.from(state.values());
-      console.log("State Values");
-
-      if (state) {
-        // Wait until the state is fully loaded before sending the response
-        res.status(200).json({ data: stateArray });
-      } else {
-        res.status(404).json({ message: "No data found for this CID" });
+        console.log("No Cid");
       }
     } catch (error) {
       console.error("Handler error:", error);

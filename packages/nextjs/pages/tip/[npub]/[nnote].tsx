@@ -245,16 +245,6 @@ const Tip: NextPage = () => {
     }
   }, [publicKey, connected]);
 
-  /* useEffect(() => {
-    // Auto-tip if wallet is connected and npub is valid
-    const autoTip = async () => {
-      if (signer && isNpubValid) {
-      }
-    };
-
-    autoTip();
-  }, [signer, isNpubValid, npub, nnote]); */ handleConnectRelay;
-
   useEffect(() => {
     handleConnectRelay();
   }, []);

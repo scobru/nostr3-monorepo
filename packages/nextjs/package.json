@@ -27,6 +27,7 @@
     "@types/fs-extra": "^11.0.4",
     "@uniswap/sdk-core": "^4.0.1",
     "@uniswap/v2-sdk": "^3.0.1",
+    "@vercel/kv": "^1.0.1",
     "blo": "^1.0.1",
     "daisyui": "^3.5.1",
     "elliptic": "^6.5.4",
